@@ -79,10 +79,10 @@ Where $obs[i]$ is the number of breaks in the $i$'th loom.
 """
 
 # ╔═╡ 9ff9b9b0-3438-438d-920f-efb32a27cbca
-@model function warp_breaks(obs)
+@model function warp_breaks(breaks)
 	λ0 = 27
 	λ1 ~ Exponential(λ0)
-	obs ~ product_distribution(fill(Poisson(λ1), length(obs)))
+	breaks ~ product_distribution(fill(Poisson(λ1), length(breaks)))
 end
 
 # ╔═╡ 6c478f37-ecb9-4a54-a252-8bfc21251a24
@@ -91,10 +91,7 @@ md"""
 """
 
 # ╔═╡ 4d6cf4f7-961a-4fb9-8ea6-5babe84cafa7
-begin
-	observations = warpbreaks_df.Breaks
-	chn_prior = sample(warp_breaks(observations), Prior(), 10000)
-end
+chn_prior = sample(warp_breaks(warpbreaks_df.Breaks), Prior(), 10000)
 
 # ╔═╡ d334e9d1-f55c-44ea-b3bc-5b7afb7df84c
 plot(chn_prior)
@@ -149,7 +146,7 @@ end
 
 # ╔═╡ b2f5b368-2940-442d-936f-58aec32c889e
 md"""
-The fact that the Prior is so flat (varied) compared to the posterior alludes to the fact that it is an uninformative prior.
+The fact that the prior is so flat compared to the posterior alludes to the fact that it is a rather uninformative prior.
 """
 
 # ╔═╡ d4974a79-c017-42b9-85b5-b21d46fddf0b
@@ -161,19 +158,18 @@ md"""
 begin
 	density(chn_A, lab="posterior (wool A)", color=:pink)  # A density plot of the 1st sampled chain
 	density!(chn_B, lab="posterior (wool B)", color=:red)  # A density plot of the 1st sampled chain
-	# vline!([mean(warpbreaks_df[warpbreaks_df.Wool .== "A", :Breaks])], linewidth = 2, color=:yellow, label="mean observation",)  # The mean observation of wool A
-	# 	vline!([mean(warpbreaks_df[warpbreaks_df.Wool .== "B", :Breaks])], linewidth = 2, color=:yellow, label="mean observation",)  # The mean observation of wool B
 	density!(chn_prior, label="prior",  legend=:topright, color=:cyan)  # The prior
 end
 
 # ╔═╡ 81251a40-160a-4a5b-bd5c-ca83de92a190
 md"""
-When observing just one category of data, the models come out different. The posteriors seperated on $A$ and $B$ reflect the same trend we saw before: wool of type $A$ is estimated to break more often than wool of type $B$.  
+When fed just one category of data, the inferences produce different results. The posteriors seperated on $A$ and $B$ reflect the same trend we saw before, in the data: wool of type $A$ is estimated to break more often than wool of type $B$.  
 """
 
 # ╔═╡ fc4fccfa-00ae-431d-b5e7-ddb7e8cde96d
 md"""
 ## Model 2: Hierarchical on Wool
+We would like to account for wool tension $T \in \{L, M, H\}$. 
 
 
 """
@@ -182,6 +178,13 @@ md"""
 md"""
 #### The Model
 """
+
+# ╔═╡ 5ff7c63f-b926-4c11-b219-dbc6948b9cd7
+@model function warp_breaks_hier(breaks)
+	λ0 = 27
+	λ1 ~ Exponential(λ0)
+	breaks ~ product_distribution(fill(Poisson(λ1), length(breaks)))
+end
 
 # ╔═╡ 9fd59715-6aaf-4786-b417-39f795811e52
 md"""
@@ -227,8 +230,9 @@ md"""
 # ╟─b2f5b368-2940-442d-936f-58aec32c889e
 # ╟─d4974a79-c017-42b9-85b5-b21d46fddf0b
 # ╠═82e92527-9e2d-4427-bd84-6676b69ef9be
-# ╠═81251a40-160a-4a5b-bd5c-ca83de92a190
+# ╟─81251a40-160a-4a5b-bd5c-ca83de92a190
 # ╠═fc4fccfa-00ae-431d-b5e7-ddb7e8cde96d
 # ╟─7bc43c2b-4a41-4f3b-b193-875c7f558ce5
+# ╠═5ff7c63f-b926-4c11-b219-dbc6948b9cd7
 # ╠═9fd59715-6aaf-4786-b417-39f795811e52
 # ╟─bc121ee0-30df-4542-b25f-7c6f51b8d6d2
