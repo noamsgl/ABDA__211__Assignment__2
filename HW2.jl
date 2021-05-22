@@ -42,52 +42,12 @@ histogram(warpbreaks_df.Breaks, bins=20,xlabel="Count of Warp Breaks", ylabel="C
 # ╔═╡ b44ae535-e44e-4dbc-a97e-bb50ca90e2bb
 summarystats(warpbreaks_df.Breaks)
 
-# ╔═╡ 24ebf4be-0b4e-4158-ba05-b71ddfec3c44
+# ╔═╡ fa5603e5-7d9d-453a-9c96-7d6a77f12127
 md"""
-## Fully Pooled Model
 
-The Poisson distribution gives the probability of observing some $k \in \mathbb{N}$ events in a given period of time, assuming that events occur independently at a constant rate. According to [^1], it can be used to model the distribution of the number of defects in a piece of material. Since every break in the wool is caused independently with no memory of the previous breaks, we will use the Poisson distribution to model the number of warp breaks in a loom:
+#### Seperate on Wool Type
 
-$λ_0 = 27$
-$λ_1 ∼ Exponential(λ_0)$
-$obs[i] ∼ Poisson(λ_1) \space \forall i$
-
-Where $obs[i]$ is the number of breaks in the $i$'th loom.
 """
-
-# ╔═╡ 9ff9b9b0-3438-438d-920f-efb32a27cbca
-@model function warp_breaks(obs; mean_break_rate=27)
-	λ1 ~ Exponential(mean_break_rate)
-	obs ~ product_distribution(fill(Poisson(λ1), length(obs)))
-	return mean_break_rate
-end
-
-# ╔═╡ 6c478f37-ecb9-4a54-a252-8bfc21251a24
-md"""
-#### Sampling the Prior
-"""
-
-# ╔═╡ 520a5338-d39d-4a41-a133-f9257a6b312e
-md"""
-#### Sampling the posterior
-"""
-
-# ╔═╡ 7b61939d-4fdd-4cf3-9396-bc669d79c69d
-begin
-	observations = warpbreaks_df.Breaks
-	chn = sample(warp_breaks(observations, mean_break_rate=27), NUTS(), MCMCThreads(), 10000, 4)
-end
-
-# ╔═╡ 4d6cf4f7-961a-4fb9-8ea6-5babe84cafa7
-begin
-	chn_prior = sample(warp_breaks(observations, mean_break_rate=27), Prior(), 10000)
-end
-
-# ╔═╡ d334e9d1-f55c-44ea-b3bc-5b7afb7df84c
-plot(chn_prior)
-
-# ╔═╡ c1e5aa03-e300-477b-bd42-b4d0c14457b2
-plot(chn)
 
 # ╔═╡ 8912c50a-3b43-4f0f-91ad-5c2a10f9d1a1
 begin
@@ -101,8 +61,120 @@ summarystats(warpbreaks_df.Breaks), summarystats(warpbreaks_df[warpbreaks_df.Woo
 
 # ╔═╡ c5d27891-067c-46b0-90b7-bcdae15e6b8c
 md"""
-Thus, wool A breaks more often than wool B.
-We want to utilize this information to 
+Observate that on average, **wool of type A breaks more often than wool of type B**.
+
+"""
+
+# ╔═╡ 24ebf4be-0b4e-4158-ba05-b71ddfec3c44
+md"""
+## Model 1: Fully Pooled
+
+The Poisson distribution gives the probability of observing some $k \in \mathbb{N}$ events in a given period of time, assuming that events occur independently at a constant rate. According to [^1], it can be used to model the distribution of the number of defects in a piece of material. Since every break in the wool is caused independently with no memory of the previous breaks, we will use the Poisson distribution to model the number of warp breaks in a loom:
+
+$λ_0 = 27$
+$λ_1 ∼ Exponential(λ_0)$
+$obs[i] ∼ Poisson(λ_1) \space \forall i$
+
+Where $obs[i]$ is the number of breaks in the $i$'th loom.
+"""
+
+# ╔═╡ 9ff9b9b0-3438-438d-920f-efb32a27cbca
+@model function warp_breaks(obs)
+	λ0 = 27
+	λ1 ~ Exponential(λ0)
+	obs ~ product_distribution(fill(Poisson(λ1), length(obs)))
+end
+
+# ╔═╡ 6c478f37-ecb9-4a54-a252-8bfc21251a24
+md"""
+#### Sampling the Prior
+"""
+
+# ╔═╡ 4d6cf4f7-961a-4fb9-8ea6-5babe84cafa7
+begin
+	observations = warpbreaks_df.Breaks
+	chn_prior = sample(warp_breaks(observations), Prior(), 10000)
+end
+
+# ╔═╡ d334e9d1-f55c-44ea-b3bc-5b7afb7df84c
+plot(chn_prior)
+
+# ╔═╡ 58675fd9-d1fb-4d09-9879-12b495fa154a
+describe(chn_prior)
+
+# ╔═╡ 520a5338-d39d-4a41-a133-f9257a6b312e
+md"""
+#### Sampling the Posterior
+"""
+
+# ╔═╡ 7b61939d-4fdd-4cf3-9396-bc669d79c69d
+chn = sample(warp_breaks(warpbreaks_df.Breaks), NUTS(), MCMCThreads(), 10000, 4)
+
+# ╔═╡ c1e5aa03-e300-477b-bd42-b4d0c14457b2
+plot(chn)
+
+# ╔═╡ c7b066a2-cc0d-4d85-b7f9-a279b3345ee4
+md"""
+
+We can see that the sampler converges (all 4 chains are in agreement).
+
+##### Seperating Wool Type
+Let us estimate $λ_1$ seperately for each wool type:
+"""
+
+# ╔═╡ c8d43349-488d-4cd3-934b-88d334127272
+begin
+	chn_A = sample(warp_breaks(warpbreaks_df[warpbreaks_df.Wool .== "A", :Breaks]), NUTS(), MCMCThreads(), 10000, 1)
+	chn_B = sample(warp_breaks(warpbreaks_df[warpbreaks_df.Wool .== "B", :Breaks]), NUTS(), MCMCThreads(), 10000, 1);
+end
+
+# ╔═╡ ff0dbf9b-0135-4c68-883b-ac30283ff9c7
+begin
+	plot(chn_A, label="Wool A")
+	plot!(chn_B, label="Wool B", legend=:topright)
+end
+
+# ╔═╡ c5963b29-f843-4e38-ab21-51b3d891a197
+md"""
+## Plotting Prior and Posterior
+Let's now plot the prior, posterior, and mean observation of $λ_1$:
+"""
+
+# ╔═╡ 88f73f6d-0709-46fb-b7a6-a9898a2f044c
+begin
+	density(chn[:,:,1], lab="posterior", color=:red)  # A density plot of the 1st sampled chain
+	vline!([mean(warpbreaks_df.Breaks)], linewidth = 2, color=:yellow, label="mean observation",)  # The mean observation
+	density!(chn_prior, label="prior",  legend=:topright, color=:cyan)  # The prior
+end
+
+# ╔═╡ b2f5b368-2940-442d-936f-58aec32c889e
+md"""
+The fact that the Prior is so flat (varied) compared to the posterior alludes to the fact that it is an uninformative prior.
+"""
+
+# ╔═╡ d4974a79-c017-42b9-85b5-b21d46fddf0b
+md"""
+#### Seperating Wool Type
+"""
+
+# ╔═╡ 82e92527-9e2d-4427-bd84-6676b69ef9be
+begin
+	density(chn_A, lab="posterior (wool A)", color=:pink)  # A density plot of the 1st sampled chain
+	density!(chn_B, lab="posterior (wool B)", color=:red)  # A density plot of the 1st sampled chain
+	# vline!([mean(warpbreaks_df[warpbreaks_df.Wool .== "A", :Breaks])], linewidth = 2, color=:yellow, label="mean observation",)  # The mean observation of wool A
+	# 	vline!([mean(warpbreaks_df[warpbreaks_df.Wool .== "B", :Breaks])], linewidth = 2, color=:yellow, label="mean observation",)  # The mean observation of wool B
+	density!(chn_prior, label="prior",  legend=:topright, color=:cyan)  # The prior
+end
+
+# ╔═╡ 81251a40-160a-4a5b-bd5c-ca83de92a190
+md"""
+When observing just one category of data, the models come out different. The posteriors seperated on $A$ and $B$ reflect the same trend we saw before: wool of type $A$ is estimated to break more often than wool of type $B$.  
+"""
+
+# ╔═╡ fc4fccfa-00ae-431d-b5e7-ddb7e8cde96d
+md"""
+## Model 2: Hierarchical on Wool
+
 
 """
 
@@ -111,34 +183,11 @@ md"""
 #### The Model
 """
 
-# ╔═╡ 7f3140f5-0cda-474a-9b5b-a68ec5e68b09
+# ╔═╡ 9fd59715-6aaf-4786-b417-39f795811e52
 md"""
-#### Samples
+## Model 3: Fully Seperate
+
 """
-
-# ╔═╡ 4f764ac8-8b2d-4870-8aaf-0c3b7c7ae133
-function take(a=1, b=1)
-	u = rand()
-	if u >= 0.5
-		x = a - b * log(2*(1-u))
-	else
-		x = a + b * log(2*u)
-	end
-	return x
-end
-
-# ╔═╡ edb063c6-4466-4b74-995a-043f438c3376
-vec = zeros(4)
-
-# ╔═╡ b84b36b0-6baf-4b56-84fd-c2d1d3e39e8e
-take.(vec)
-
-# ╔═╡ d9ed9d93-a252-4fe6-a541-0f8d5e571a7b
-begin
-	result = zeros(10000)
-	result = take.(result)
-	histogram(result)
-end
 
 # ╔═╡ bc121ee0-30df-4542-b25f-7c6f51b8d6d2
 md"""
@@ -157,21 +206,29 @@ md"""
 # ╠═74905b50-46b0-41a1-86bb-5d151e3e3a58
 # ╠═8e981ff6-e0a1-45f6-98ef-113432c13808
 # ╠═b44ae535-e44e-4dbc-a97e-bb50ca90e2bb
+# ╟─fa5603e5-7d9d-453a-9c96-7d6a77f12127
+# ╠═8912c50a-3b43-4f0f-91ad-5c2a10f9d1a1
+# ╠═60951dfa-e531-4fcd-ac2f-eab1bd7ba90b
+# ╟─c5d27891-067c-46b0-90b7-bcdae15e6b8c
 # ╟─24ebf4be-0b4e-4158-ba05-b71ddfec3c44
 # ╠═9ff9b9b0-3438-438d-920f-efb32a27cbca
 # ╟─6c478f37-ecb9-4a54-a252-8bfc21251a24
 # ╠═4d6cf4f7-961a-4fb9-8ea6-5babe84cafa7
 # ╠═d334e9d1-f55c-44ea-b3bc-5b7afb7df84c
+# ╠═58675fd9-d1fb-4d09-9879-12b495fa154a
 # ╟─520a5338-d39d-4a41-a133-f9257a6b312e
 # ╠═7b61939d-4fdd-4cf3-9396-bc669d79c69d
 # ╠═c1e5aa03-e300-477b-bd42-b4d0c14457b2
-# ╠═8912c50a-3b43-4f0f-91ad-5c2a10f9d1a1
-# ╠═60951dfa-e531-4fcd-ac2f-eab1bd7ba90b
-# ╠═c5d27891-067c-46b0-90b7-bcdae15e6b8c
+# ╟─c7b066a2-cc0d-4d85-b7f9-a279b3345ee4
+# ╠═c8d43349-488d-4cd3-934b-88d334127272
+# ╠═ff0dbf9b-0135-4c68-883b-ac30283ff9c7
+# ╟─c5963b29-f843-4e38-ab21-51b3d891a197
+# ╠═88f73f6d-0709-46fb-b7a6-a9898a2f044c
+# ╟─b2f5b368-2940-442d-936f-58aec32c889e
+# ╟─d4974a79-c017-42b9-85b5-b21d46fddf0b
+# ╠═82e92527-9e2d-4427-bd84-6676b69ef9be
+# ╠═81251a40-160a-4a5b-bd5c-ca83de92a190
+# ╠═fc4fccfa-00ae-431d-b5e7-ddb7e8cde96d
 # ╟─7bc43c2b-4a41-4f3b-b193-875c7f558ce5
-# ╟─7f3140f5-0cda-474a-9b5b-a68ec5e68b09
-# ╠═4f764ac8-8b2d-4870-8aaf-0c3b7c7ae133
-# ╠═edb063c6-4466-4b74-995a-043f438c3376
-# ╠═b84b36b0-6baf-4b56-84fd-c2d1d3e39e8e
-# ╠═d9ed9d93-a252-4fe6-a541-0f8d5e571a7b
+# ╠═9fd59715-6aaf-4786-b417-39f795811e52
 # ╟─bc121ee0-30df-4542-b25f-7c6f51b8d6d2
