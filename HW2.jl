@@ -31,16 +31,13 @@ md"""
 """
 
 # ╔═╡ 74905b50-46b0-41a1-86bb-5d151e3e3a58
-begin
-	warpbreaks_df = RDatasets.dataset("datasets", "warpbreaks")
-	warpbreaks_df
-end
+warpbreaks_df = RDatasets.dataset("datasets", "warpbreaks")
 
 # ╔═╡ 8e981ff6-e0a1-45f6-98ef-113432c13808
 histogram(warpbreaks_df.Breaks, bins=20,xlabel="Count of Warp Breaks", ylabel="Count of Looms", label="All Data")
 
 # ╔═╡ b44ae535-e44e-4dbc-a97e-bb50ca90e2bb
-summarystats(warpbreaks_df.Breaks)
+summarystats(warpbreaks_df.Breaks), std(warpbreaks_df.Breaks)
 
 # ╔═╡ fa5603e5-7d9d-453a-9c96-7d6a77f12127
 md"""
@@ -50,7 +47,7 @@ md"""
 """
 
 # ╔═╡ 8912c50a-3b43-4f0f-91ad-5c2a10f9d1a1
-begin
+let
 	bins = 0:5:100
 	xlim = (0,100)
 	@df warpbreaks_df groupedhist(:Breaks, group=:Wool, bar_position = :dodge, bins=bins, ylabel="Loom Counts")
@@ -166,11 +163,64 @@ md"""
 When fed just one category of data, the inferences produce different results. The posteriors seperated on $A$ and $B$ reflect the same trend we saw before, in the data: wool of type $A$ is estimated to break more often than wool of type $B$.  
 """
 
+# ╔═╡ 9fd59715-6aaf-4786-b417-39f795811e52
+md"""
+## Model 2: Fully Seperate
+Here, we let each 
+
+"""
+
+# ╔═╡ 70c61890-a65f-49a8-be91-9bb9ddbcbf00
+@model function warp_breaks_seperate(breaks, tension)
+	λ0 = 27
+	λ1 ~ product_distribution(fill(Exponential(λ0), length(breaks)))
+	for i in eachindex(breaks)
+		breaks[i] ~ Poisson(λ1[i])
+	end
+end
+
+# ╔═╡ c53f412d-d763-4def-838b-517b5c4e9d81
+chn_seperate = sample(warp_breaks_seperate(warpbreaks_df.Breaks, warpbreaks_df.Tension), NUTS(), MCMCThreads(), 10000, 4)
+
+# ╔═╡ c89b51c7-e6ff-4cf7-9ab2-0b536784b686
+plot(chn_seperate)
+
+# ╔═╡ a63016f7-1954-4434-bc3f-bc8cb844057e
+inferred = mean(Array(group(chn_seperate, :λ1)), dims = 1)'
+
+# ╔═╡ 64fd1f37-63f0-45ee-be3b-514b1193c7cb
+md"""
+We can now plot the posterior for each mean break rate, compared to the observed break rate, for the three types of wool.
+"""
+
+# ╔═╡ d5a0f661-41e6-4e02-b3ad-dd73ce1f30fc
+let
+	p = plot(layout = (1,3), size = (1000,300))
+	for (i, t) in enumerate(unique(warpbreaks_df.Tension))
+		indices = warpbreaks_df.Tension .== t
+		scatter!(warpbreaks_df.Breaks[indices], inferred[indices],
+			xlabel="Observed Breaks", ylabel="Inferred Mean Break Rate", title="Tension $t", subplot=i)
+		plot!([0, 80], [0, 80], subplot=i, line=(1, :dash, :green), label=missing)
+	end
+	p
+end
+
+# ╔═╡ 8cbd6987-c9a0-471e-85ad-e987e7383b12
+unique(warpbreaks_df.Tension)
+
+# ╔═╡ b31e0f83-2f64-44c6-998c-fd7be90cedd5
+histogram(warpbreaks_df.Breaks, bins=30)
+
 # ╔═╡ fc4fccfa-00ae-431d-b5e7-ddb7e8cde96d
 md"""
 ## Model 2: Hierarchical on Wool
-We would like to account for wool tension $T \in \{L, M, H\}$. 
+We would like to account for wool tension $T \in \{L, M, H\}$ in a multilevel model.
 
+$λ_0 = 27$
+$λ_1 ∼ Exponential(λ_0)$
+$obs[i] ∼ Poisson(λ_1) \space \forall i$
+
+Where $obs[i]$ is the number of breaks in the $i$'th loom.
 
 """
 
@@ -180,17 +230,15 @@ md"""
 """
 
 # ╔═╡ 5ff7c63f-b926-4c11-b219-dbc6948b9cd7
-@model function warp_breaks_hier(breaks)
+@model function warp_breaks_hier(breaks, tension)
 	λ0 = 27
+	σ ~ Exponential(1)  # Prior for std of tensions
+	
+	α ~ MvNormal(fill(λ0, length(tension), 1.5)  # Prior for average tension break rate
+	MvNormal(fill(μ0, length(tension), σ)
 	λ1 ~ Exponential(λ0)
 	breaks ~ product_distribution(fill(Poisson(λ1), length(breaks)))
 end
-
-# ╔═╡ 9fd59715-6aaf-4786-b417-39f795811e52
-md"""
-## Model 3: Fully Seperate
-
-"""
 
 # ╔═╡ bc121ee0-30df-4542-b25f-7c6f51b8d6d2
 md"""
@@ -204,7 +252,7 @@ md"""
 
 # ╔═╡ Cell order:
 # ╠═f4f05182-38b6-4bfc-bcbb-86ceb63cecbb
-# ╠═cff83100-b955-11eb-2950-75483cd235df
+# ╟─cff83100-b955-11eb-2950-75483cd235df
 # ╟─4b56e944-8dda-4fa9-a4e9-71d0255110aa
 # ╠═74905b50-46b0-41a1-86bb-5d151e3e3a58
 # ╠═8e981ff6-e0a1-45f6-98ef-113432c13808
@@ -231,8 +279,16 @@ md"""
 # ╟─d4974a79-c017-42b9-85b5-b21d46fddf0b
 # ╠═82e92527-9e2d-4427-bd84-6676b69ef9be
 # ╟─81251a40-160a-4a5b-bd5c-ca83de92a190
+# ╠═9fd59715-6aaf-4786-b417-39f795811e52
+# ╠═70c61890-a65f-49a8-be91-9bb9ddbcbf00
+# ╠═c53f412d-d763-4def-838b-517b5c4e9d81
+# ╠═c89b51c7-e6ff-4cf7-9ab2-0b536784b686
+# ╠═a63016f7-1954-4434-bc3f-bc8cb844057e
+# ╠═64fd1f37-63f0-45ee-be3b-514b1193c7cb
+# ╠═d5a0f661-41e6-4e02-b3ad-dd73ce1f30fc
+# ╠═8cbd6987-c9a0-471e-85ad-e987e7383b12
+# ╠═b31e0f83-2f64-44c6-998c-fd7be90cedd5
 # ╠═fc4fccfa-00ae-431d-b5e7-ddb7e8cde96d
 # ╟─7bc43c2b-4a41-4f3b-b193-875c7f558ce5
 # ╠═5ff7c63f-b926-4c11-b219-dbc6948b9cd7
-# ╠═9fd59715-6aaf-4786-b417-39f795811e52
 # ╟─bc121ee0-30df-4542-b25f-7c6f51b8d6d2
