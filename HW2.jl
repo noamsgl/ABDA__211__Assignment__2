@@ -166,7 +166,7 @@ When fed just one category of data, the inferences produce different results. Th
 # ╔═╡ 9fd59715-6aaf-4786-b417-39f795811e52
 md"""
 ## Model 2: Fully Seperate
-Here, we let each 
+Here, we let each experiment have it's own set of parameters (not shared).
 
 """
 
@@ -199,7 +199,7 @@ let
 	for (i, t) in enumerate(unique(warpbreaks_df.Tension))
 		indices = warpbreaks_df.Tension .== t
 		scatter!(warpbreaks_df.Breaks[indices], inferred[indices],
-			xlabel="Observed Breaks", ylabel="Inferred Mean Break Rate", title="Tension $t", subplot=i)
+			xlabel="Observed Breaks", ylabel="Inferred Mean Break Rate", title="Tension $t", label=:Wool, subplot=i)
 		plot!([0, 80], [0, 80], subplot=i, line=(1, :dash, :green), label=missing)
 	end
 	p
@@ -230,15 +230,91 @@ md"""
 """
 
 # ╔═╡ 5ff7c63f-b926-4c11-b219-dbc6948b9cd7
-@model function warp_breaks_hier(breaks, tension)
-	λ0 = 27
-	σ ~ Exponential(1)  # Prior for std of tensions
+# @model function warp_breaks_hier(breaks, tension)
+# 	λ0 = 27
+# 	σ ~ Exponential(1)  # Prior for std of tensions
 	
-	α ~ MvNormal(fill(λ0, length(tension), 1.5)  # Prior for average tension break rate
-	MvNormal(fill(μ0, length(tension), σ)
-	λ1 ~ Exponential(λ0)
-	breaks ~ product_distribution(fill(Poisson(λ1), length(breaks)))
-end
+# 	α ~ MvNormal(fill(λ0, length(tension), 1.5)  # Prior for average tension break rate
+# 	MvNormal(fill(μ0, length(tension), σ)
+# 	λ1 ~ Exponential(λ0)
+# 	breaks ~ product_distribution(fill(Poisson(λ1), length(breaks)))
+# end
+
+# ╔═╡ 78586ab6-e1c1-4731-aa2b-6bd73c1d6d64
+md"""
+## Problem 2: Norfolk City Salaries
+"""
+
+# ╔═╡ b99d128a-6179-4644-8bff-8d7b23cc7a5e
+md"""
+### Exploratory Data Analysis
+
+First, we will explore the dataset.
+"""
+
+# ╔═╡ 197973a1-2cde-4be5-b4dc-608ec55f57f4
+md"""
+Thus, the original dataset includes 4399 employees and 7 fields of information.
+Let's trim the whitespaces surrounding "Department  " and filter unnecessary columns.
+"""
+
+# ╔═╡ 00dae8e7-1358-4e49-a851-18812969199e
+md"""### Exploring Base Salary
+
+Let us plot a histogram of the base salary.
+"""
+
+# ╔═╡ 5c538050-fe6d-48bc-b206-e3bd45462cfe
+md"""
+<b>Observation</b>: The salary distribution is **clustered**: employees either have salaries in the range (9,150) or in (3500, 260000).
+
+**Explanation**: The base salaries reflect either an hourly rate or a monthly income.
+
+**Action**: In order to correct for the different values in this column, we will decide that any value under 1000 is an hourly rate and any value at or above 1000 is a monthly salary. We will summarize this in a new column "Monthly Salary".
+
+This is the histogram of the new column:"""
+
+# ╔═╡ 4c671e0d-6020-4a1e-8770-3e4081e9c7d3
+size(df) # (num_rows, num_columns)
+
+# ╔═╡ 4c27de3c-bb06-4c98-b3c7-a69c69af529c
+names(df) # names of columns
+
+# ╔═╡ 187f2f8b-1e26-4b57-bec5-135b8dc7637b
+histogram(df."Base Salary", title="Distribution of Base Salary", label="Employees Count")
+
+# ╔═╡ ab1e4301-b614-4641-9f14-572dd6b0feb2
+histogram(df[!,"Monthly Salary"])
+
+# ╔═╡ aeae52f9-f4b3-451a-bc83-09d2d96b6d19
+departments_df = combine(groupby(df, [:Department]), df -> 
+        DataFrame(
+            mean_monthly_salary = mean(df[!,"Monthly Salary"]),
+            count_employees = nrow(df),
+            std_monthly_salary = std(df[!,"Monthly Salary"])
+        ))
+
+# ╔═╡ 4532be5c-275d-4445-a3a4-b86e747b22c3
+md"""
+### Exploring Department
+"""
+
+# ╔═╡ a5258ead-99c4-4e43-92e1-b3cdf2d16a61
+histogram(departments_count.count, title="Distribution of Department", xlabel="Employees Count", label="Department Count")
+
+# ╔═╡ 095ea8de-8f51-4410-b48c-49df60176e84
+md"""
+<b>Observation</b>: There are 165 departments total. The top 5 largest departments consist of ~40% of the employees. The remaining 160 departments hold the other ~60%.
+### Exploring Employee Status
+<b>Observation</b>: The are 17 employement statuses total. 14 statuses have little employee counts (166) and 3 statuses have the lion's share (remaining 4170)
+"""
+
+
+# ╔═╡ 0eb51927-2903-499d-a911-826319149247
+
+
+# ╔═╡ 3513525c-db20-4f5a-84ee-16569ea4ebd9
+
 
 # ╔═╡ bc121ee0-30df-4542-b25f-7c6f51b8d6d2
 md"""
@@ -249,6 +325,31 @@ md"""
 [^1]: Krishnamoorthy, Kalimuthu. Handbook of statistical distributions with applications. CRC Press, 2016. (p. 90)
 
 """
+
+# ╔═╡ 0c5cac5f-a92a-426d-87bd-6c02d8e31626
+
+
+# ╔═╡ 8ce5267a-b1cb-40b0-91ff-27851db5d3a8
+df = transform(df, :"Base Salary" => ByRow(x -> x < 1000 ? 40 * 4 * x : x) => :"Monthly Salary");
+
+# ╔═╡ b383b083-5099-475f-acc4-27c9501c542d
+begin
+	try # Running this block a second time throws an ArgumentError
+	    rename!(df, "Department  " => "Department");
+	catch
+	    ArgumentError
+	end
+	
+	df = df[:, ["Department", "Employee Status", "Base Salary"]]
+	names(df)
+end
+
+# ╔═╡ 900c3192-c752-4bca-8f83-ba6c8eb56245
+begin
+	fpath = raw"C:\Users\noam\Repositories\bgu-abda.bitbucket.io\homework\02norfolk_employee_data.csv";
+	df = CSV.read(fpath, DataFrame);
+	first(df, 5)
+end
 
 # ╔═╡ Cell order:
 # ╠═f4f05182-38b6-4bfc-bcbb-86ceb63cecbb
@@ -291,4 +392,23 @@ md"""
 # ╠═fc4fccfa-00ae-431d-b5e7-ddb7e8cde96d
 # ╟─7bc43c2b-4a41-4f3b-b193-875c7f558ce5
 # ╠═5ff7c63f-b926-4c11-b219-dbc6948b9cd7
+# ╠═78586ab6-e1c1-4731-aa2b-6bd73c1d6d64
+# ╠═900c3192-c752-4bca-8f83-ba6c8eb56245
+# ╠═b99d128a-6179-4644-8bff-8d7b23cc7a5e
+# ╠═4c671e0d-6020-4a1e-8770-3e4081e9c7d3
+# ╠═4c27de3c-bb06-4c98-b3c7-a69c69af529c
+# ╠═197973a1-2cde-4be5-b4dc-608ec55f57f4
+# ╠═b383b083-5099-475f-acc4-27c9501c542d
+# ╠═00dae8e7-1358-4e49-a851-18812969199e
+# ╠═187f2f8b-1e26-4b57-bec5-135b8dc7637b
+# ╠═5c538050-fe6d-48bc-b206-e3bd45462cfe
+# ╠═8ce5267a-b1cb-40b0-91ff-27851db5d3a8
+# ╠═ab1e4301-b614-4641-9f14-572dd6b0feb2
+# ╠═aeae52f9-f4b3-451a-bc83-09d2d96b6d19
+# ╠═4532be5c-275d-4445-a3a4-b86e747b22c3
+# ╠═a5258ead-99c4-4e43-92e1-b3cdf2d16a61
+# ╠═095ea8de-8f51-4410-b48c-49df60176e84
+# ╠═0eb51927-2903-499d-a911-826319149247
+# ╠═3513525c-db20-4f5a-84ee-16569ea4ebd9
 # ╟─bc121ee0-30df-4542-b25f-7c6f51b8d6d2
+# ╠═0c5cac5f-a92a-426d-87bd-6c02d8e31626
