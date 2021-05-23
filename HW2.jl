@@ -88,13 +88,13 @@ md"""
 """
 
 # ╔═╡ 4d6cf4f7-961a-4fb9-8ea6-5babe84cafa7
-chn_prior = sample(warp_breaks(warpbreaks_df.Breaks), Prior(), 10000)
+chn1_prior = sample(warp_breaks(warpbreaks_df.Breaks), Prior(), 10000)
 
 # ╔═╡ d334e9d1-f55c-44ea-b3bc-5b7afb7df84c
-plot(chn_prior)
+plot(chn1_prior)
 
 # ╔═╡ 58675fd9-d1fb-4d09-9879-12b495fa154a
-describe(chn_prior)
+describe(chn1_prior)
 
 # ╔═╡ 520a5338-d39d-4a41-a133-f9257a6b312e
 md"""
@@ -102,10 +102,10 @@ md"""
 """
 
 # ╔═╡ 7b61939d-4fdd-4cf3-9396-bc669d79c69d
-chn = sample(warp_breaks(warpbreaks_df.Breaks), NUTS(), MCMCThreads(), 10000, 4)
+chn1 = sample(warp_breaks(warpbreaks_df.Breaks), NUTS(), MCMCThreads(), 10000, 4)
 
 # ╔═╡ c1e5aa03-e300-477b-bd42-b4d0c14457b2
-plot(chn)
+plot(chn1)
 
 # ╔═╡ c7b066a2-cc0d-4d85-b7f9-a279b3345ee4
 md"""
@@ -118,14 +118,14 @@ Let us estimate $λ_1$ seperately for each wool type:
 
 # ╔═╡ c8d43349-488d-4cd3-934b-88d334127272
 begin
-	chn_A = sample(warp_breaks(warpbreaks_df[warpbreaks_df.Wool .== "A", :Breaks]), NUTS(), MCMCThreads(), 10000, 1)
-	chn_B = sample(warp_breaks(warpbreaks_df[warpbreaks_df.Wool .== "B", :Breaks]), NUTS(), MCMCThreads(), 10000, 1);
+	chn1_A = sample(warp_breaks(warpbreaks_df[warpbreaks_df.Wool .== "A", :Breaks]), NUTS(), MCMCThreads(), 10000, 1)
+	chn1_B = sample(warp_breaks(warpbreaks_df[warpbreaks_df.Wool .== "B", :Breaks]), NUTS(), MCMCThreads(), 10000, 1);
 end
 
 # ╔═╡ ff0dbf9b-0135-4c68-883b-ac30283ff9c7
 begin
-	plot(chn_A, label="Wool A")
-	plot!(chn_B, label="Wool B", legend=:topright)
+	plot(chn1_A, label="Wool A")
+	plot!(chn1_B, label="Wool B", legend=:topright)
 end
 
 # ╔═╡ c5963b29-f843-4e38-ab21-51b3d891a197
@@ -136,9 +136,9 @@ Let's now plot the prior, posterior, and mean observation of $λ_1$:
 
 # ╔═╡ 88f73f6d-0709-46fb-b7a6-a9898a2f044c
 begin
-	density(chn[:,:,1], lab="posterior", color=:red)  # A density plot of the 1st sampled chain
+	density(chn1[:,:,1], lab="posterior", color=:red)  # A density plot of the 1st sampled chain
 	vline!([mean(warpbreaks_df.Breaks)], linewidth = 2, color=:yellow, label="mean observation",)  # The mean observation
-	density!(chn_prior, label="prior",  legend=:topright, color=:cyan)  # The prior
+	density!(chn1_prior, label="prior",  legend=:topright, color=:cyan)  # The prior
 end
 
 # ╔═╡ b2f5b368-2940-442d-936f-58aec32c889e
@@ -153,9 +153,9 @@ md"""
 
 # ╔═╡ 82e92527-9e2d-4427-bd84-6676b69ef9be
 begin
-	density(chn_A, lab="posterior (wool A)", color=:pink)  # A density plot of the 1st sampled chain
-	density!(chn_B, lab="posterior (wool B)", color=:red)  # A density plot of the 1st sampled chain
-	density!(chn_prior, label="prior",  legend=:topright, color=:cyan)  # The prior
+	density(chn1_A, lab="posterior (wool A)", color=:pink)  # A density plot of the 1st sampled chain
+	density!(chn1_B, lab="posterior (wool B)", color=:red)  # A density plot of the 1st sampled chain
+	density!(chn1_prior, label="prior",  legend=:topright, color=:cyan)  # The prior
 end
 
 # ╔═╡ 81251a40-160a-4a5b-bd5c-ca83de92a190
@@ -180,13 +180,13 @@ Here, we let each experiment have it's own set of parameters (not shared).
 end
 
 # ╔═╡ c53f412d-d763-4def-838b-517b5c4e9d81
-chn_seperate = sample(warp_breaks_seperate(warpbreaks_df.Breaks, warpbreaks_df.Tension), NUTS(), MCMCThreads(), 10000, 4)
+chn1_seperate = sample(warp_breaks_seperate(warpbreaks_df.Breaks, warpbreaks_df.Tension), NUTS(), MCMCThreads(), 10000, 4)
 
 # ╔═╡ c89b51c7-e6ff-4cf7-9ab2-0b536784b686
-plot(chn_seperate)
+plot(chn1_seperate)
 
 # ╔═╡ a63016f7-1954-4434-bc3f-bc8cb844057e
-inferred = mean(Array(group(chn_seperate, :λ1)), dims = 1)'
+inferred = mean(Array(group(chn1_seperate, :λ1)), dims = 1)'
 
 # ╔═╡ 64fd1f37-63f0-45ee-be3b-514b1193c7cb
 md"""
@@ -199,7 +199,7 @@ let
 	for (i, t) in enumerate(unique(warpbreaks_df.Tension))
 		indices = warpbreaks_df.Tension .== t
 		scatter!(warpbreaks_df.Breaks[indices], inferred[indices],
-			xlabel="Observed Breaks", ylabel="Inferred Mean Break Rate", title="Tension $t", label=:Wool, subplot=i)
+			xlabel="Observed Breaks", ylabel="Inferred Mean Break Rate", title="Tension $t", subplot=i)
 		plot!([0, 80], [0, 80], subplot=i, line=(1, :dash, :green), label=missing)
 	end
 	p
@@ -224,11 +224,6 @@ Where $obs[i]$ is the number of breaks in the $i$'th loom.
 
 """
 
-# ╔═╡ 7bc43c2b-4a41-4f3b-b193-875c7f558ce5
-md"""
-#### The Model
-"""
-
 # ╔═╡ 5ff7c63f-b926-4c11-b219-dbc6948b9cd7
 # @model function warp_breaks_hier(breaks, tension)
 # 	λ0 = 27
@@ -243,78 +238,145 @@ md"""
 # ╔═╡ 78586ab6-e1c1-4731-aa2b-6bd73c1d6d64
 md"""
 ## Problem 2: Norfolk City Salaries
+
+#### The Data
+
 """
 
-# ╔═╡ b99d128a-6179-4644-8bff-8d7b23cc7a5e
-md"""
-### Exploratory Data Analysis
-
-First, we will explore the dataset.
-"""
+# ╔═╡ 6e9e9d2a-db6f-4732-b8fb-293737f7a87d
+begin
+	fpath = raw"data/employee_salaries.csv"  # place your data here
+	raw_norfolk_df = CSV.read(fpath, DataFrame)
+	raw_norfolk_df = rename(raw_norfolk_df, "Department  " => "Department")  # minor cleanup
+end
 
 # ╔═╡ 197973a1-2cde-4be5-b4dc-608ec55f57f4
 md"""
-Thus, the original dataset includes 4399 employees and 7 fields of information.
-Let's trim the whitespaces surrounding "Department  " and filter unnecessary columns.
+Thus, the dataset contains 4399 employees and 7 fields of information.
 """
 
-# ╔═╡ 00dae8e7-1358-4e49-a851-18812969199e
-md"""### Exploring Base Salary
-
-Let us plot a histogram of the base salary.
-"""
-
-# ╔═╡ 5c538050-fe6d-48bc-b206-e3bd45462cfe
+# ╔═╡ d211f8d8-81f0-4950-a417-8f46b73cb079
 md"""
-<b>Observation</b>: The salary distribution is **clustered**: employees either have salaries in the range (9,150) or in (3500, 260000).
+### Data: Base Salary
+The salary distribution is *clustered*! Employees have salaries in either the range (9,150) or in (3500, 260000).
 
-**Explanation**: The base salaries reflect either an hourly rate or a monthly income.
+We propose the assumption that the base salaries reflect either an hourly rate or a monthly income.
 
-**Action**: In order to correct for the different values in this column, we will decide that any value under 1000 is an hourly rate and any value at or above 1000 is a monthly salary. We will summarize this in a new column "Monthly Salary".
+We assume that any value under 1000 is an hourly rate and any value at or above 1000 is a monthly salary. We will correct for this inconsistency in a new column "Monthly Salary". According to [^2], we assume a 40 hour work week. Notice the new minimal value is 1561, up from 9.5.
+"""
 
-This is the histogram of the new column:"""
+# ╔═╡ f7f0254c-ea83-4ac9-a732-662b7d569008
+histogram(raw_norfolk_df."Base Salary", xlabel="Base Salary", ylabel="Employees Count", label="raw data", title="Distribution of Base Salary")
 
-# ╔═╡ 4c671e0d-6020-4a1e-8770-3e4081e9c7d3
-size(df) # (num_rows, num_columns)
+# ╔═╡ 8a5b2359-8b2f-493a-8ec8-f9c32f251b8d
+summarystats(raw_norfolk_df."Base Salary")
 
-# ╔═╡ 4c27de3c-bb06-4c98-b3c7-a69c69af529c
-names(df) # names of columns
+# ╔═╡ 900c3192-c752-4bca-8f83-ba6c8eb56245
+norfolk_df = transform(raw_norfolk_df, :"Base Salary" => ByRow(x -> x < 1000 ? 40 * (52.15/12) * x : x) => :"Monthly Salary")  # add a monthly salary column
 
-# ╔═╡ 187f2f8b-1e26-4b57-bec5-135b8dc7637b
-histogram(df."Base Salary", title="Distribution of Base Salary", label="Employees Count")
+# ╔═╡ 16ea8e44-f818-4f7e-8db6-c2e7be14f067
+histogram(norfolk_df."Monthly Salary", xlabel="Monthly Salary", ylabel="Employees Count", label="corrected data", title="Distribution of Monthly Salary")
 
-# ╔═╡ ab1e4301-b614-4641-9f14-572dd6b0feb2
-histogram(df[!,"Monthly Salary"])
-
-# ╔═╡ aeae52f9-f4b3-451a-bc83-09d2d96b6d19
-departments_df = combine(groupby(df, [:Department]), df -> 
-        DataFrame(
-            mean_monthly_salary = mean(df[!,"Monthly Salary"]),
-            count_employees = nrow(df),
-            std_monthly_salary = std(df[!,"Monthly Salary"])
-        ))
+# ╔═╡ 39257b51-2440-4dfe-93b8-7ae998f82135
+summarystats(norfolk_df."Monthly Salary")
 
 # ╔═╡ 4532be5c-275d-4445-a3a4-b86e747b22c3
 md"""
-### Exploring Department
+### Data: Department
+There are 165 departments total. The top 5 largest departments consist of ~40% of the employees. The remaining 160 departments hold the other ~60%.
+The means and standard deviations are very different, 
 """
 
-# ╔═╡ a5258ead-99c4-4e43-92e1-b3cdf2d16a61
-histogram(departments_count.count, title="Distribution of Department", xlabel="Employees Count", label="Department Count")
+# ╔═╡ aeae52f9-f4b3-451a-bc83-09d2d96b6d19
+begin
+	departments_df = combine(groupby(norfolk_df, [:Department]), norfolk_df -> 
+        DataFrame(
+            mean_monthly_salary_dpt = mean(norfolk_df[!,"Monthly Salary"]),
+            count_employees_dpt = nrow(norfolk_df),
+            std_monthly_salary_dpt = std(norfolk_df[!,"Monthly Salary"])
+        ))
+	insertcols!(departments_df, 2,  :department_code =>1:nrow(departments_df))
+end
+
+# ╔═╡ 3be7aaac-d17d-48ea-ab59-57c90d938489
+scatter(departments_df.std_monthly_salary_dpt, departments_df.count_employees_dpt, bins=20,xlabel="Salary Standard Deviation", ylabel="Employee Count", label="departments_df", title="All Departments")
+
+# ╔═╡ 0a14d343-334f-4c00-bd8d-1dff602f04ab
+scatter(departments_df.mean_monthly_salary_dpt, departments_df.count_employees_dpt, bins=20,xlabel="Mean Salary", ylabel="Employee Count", label="departments_df", title="All Departments")
+
+# ╔═╡ feccab08-ff0a-4f27-9c3d-dace4ff7af02
+histogram(departments_df.std_monthly_salary_dpt, bins=20,xlabel="Salary Standard Deviation", ylabel="Department Count", label="departments_df")
+
+# ╔═╡ 4c4c2d10-f696-4eed-b430-6777b52f4b0d
+histogram(departments_df.mean_monthly_salary_dpt, bins=20,xlabel="Mean Salary", ylabel="Department Count", label="departments_df")
+
+# ╔═╡ 64651fec-5471-473c-9158-225e3a4d9585
+md"""
+The following dataframe holds extra information about the department.
+"""
 
 # ╔═╡ 095ea8de-8f51-4410-b48c-49df60176e84
 md"""
-<b>Observation</b>: There are 165 departments total. The top 5 largest departments consist of ~40% of the employees. The remaining 160 departments hold the other ~60%.
-### Exploring Employee Status
-<b>Observation</b>: The are 17 employement statuses total. 14 statuses have little employee counts (166) and 3 statuses have the lion's share (remaining 4170)
+### Data: Employee Status
+The are 17 employement statuses total. 14 statuses have little employee counts (166) and 3 statuses have the lion's share (remaining 4170). Two departments have only one employee.
 """
 
+# ╔═╡ a770c7e9-8b4c-4674-b303-b1f01b4bd287
+status_df = combine(groupby(norfolk_df, [:"Employee Status"]), norfolk_df -> 
+        DataFrame(
+            mean_monthly_salary_status = mean(norfolk_df[!,"Monthly Salary"]),
+            count_employees_status = nrow(norfolk_df),
+            std_monthly_salary_status = std(norfolk_df[!,"Monthly Salary"])
+        ))
 
-# ╔═╡ 0eb51927-2903-499d-a911-826319149247
+# ╔═╡ 21476edb-54c7-4dd6-8ad3-876368c4c6c3
+scatter(status_df.mean_monthly_salary_status, status_df.count_employees_status, bins=20,xlabel="Mean Salary", ylabel="Employee Count", label="status_df", title="All Employee Statuses")
+
+# ╔═╡ 21d71472-7eef-48f7-89d7-c1b1a38ef047
+scatter(status_df.std_monthly_salary_status, status_df.count_employees_status, bins=20,xlabel="Standard Deviation Salary", ylabel="Employee Count", label="status_df", title="All Employee Statuses")
+
+# ╔═╡ a51cc963-8e5d-4984-8468-91e283d8585f
+histogram(status_df.mean_monthly_salary_status, bins=20,xlabel="Mean Salary", ylabel="Status Count", label="status_df", title="All Employee Statuses")
+
+# ╔═╡ 9c9fbfd9-e653-49a1-b45b-14620119b551
+histogram(status_df.std_monthly_salary_status, bins=20,xlabel="Salary Standard Deviation", ylabel="Status Count", label="status_df", title="All Employee Statuses")
+
+# ╔═╡ 95a6fbae-4aed-4660-9430-451d85dfbb5a
+md"""
+### Data: Extended Dataframe
+The `extended_norfolk_df` DataFrame holds extra statistics regarding the department and status.
+"""
+
+# ╔═╡ 3ad2303c-f85a-41b4-ada3-dab8615fe558
+begin
+	inner_df = leftjoin(norfolk_df, departments_df, on=:Department)
+	extended_norfolk_df = leftjoin(inner_df, status_df, on=:"Employee Status")
+end
+
+# ╔═╡ 7bc43c2b-4a41-4f3b-b193-875c7f558ce5
+md"""
+### Model 1
+We ignore employee status and infer the salary distributions per department.
 
 
-# ╔═╡ 3513525c-db20-4f5a-84ee-16569ea4ebd9
 
+"""
+
+# ╔═╡ 05aa5f83-eb21-4925-bb38-537f0664873b
+@model function norfolk_departments(salaries, departments)
+	n_departments = length(unique(departments)
+	α ~ MvLogNormal(fill(0, n_departments), 1)
+	μ ~ product_distribution(fill(Exponential(10), length(unique(departments))))
+	for i in eachindex(salaries)
+		salaries[i] ~ LogNormal(μ[departments[i]], σ[departments[i]])
+	end
+end
+
+# ╔═╡ 57603099-e396-41be-9ce8-575a9f3dacce
+chn2_prior = sample(norfolk_departments(norfolk_df."Monthly Salary", norfolk_df.Department), Prior(), 10000)
+
+# ╔═╡ 51ab3fa3-fdc7-40f0-9dd2-d5d4be3f0f94
+plot(chn2_prior)
 
 # ╔═╡ bc121ee0-30df-4542-b25f-7c6f51b8d6d2
 md"""
@@ -324,32 +386,9 @@ md"""
 
 [^1]: Krishnamoorthy, Kalimuthu. Handbook of statistical distributions with applications. CRC Press, 2016. (p. 90)
 
+[^2]: Workweek and weekend. (2021, May 23). In Wikipedia. [https://en.wikipedia.org/wiki/Workweek\_and\_weekend](https://en.wikipedia.org/wiki/Workweek_and_weekend)
+
 """
-
-# ╔═╡ 0c5cac5f-a92a-426d-87bd-6c02d8e31626
-
-
-# ╔═╡ 8ce5267a-b1cb-40b0-91ff-27851db5d3a8
-df = transform(df, :"Base Salary" => ByRow(x -> x < 1000 ? 40 * 4 * x : x) => :"Monthly Salary");
-
-# ╔═╡ b383b083-5099-475f-acc4-27c9501c542d
-begin
-	try # Running this block a second time throws an ArgumentError
-	    rename!(df, "Department  " => "Department");
-	catch
-	    ArgumentError
-	end
-	
-	df = df[:, ["Department", "Employee Status", "Base Salary"]]
-	names(df)
-end
-
-# ╔═╡ 900c3192-c752-4bca-8f83-ba6c8eb56245
-begin
-	fpath = raw"C:\Users\noam\Repositories\bgu-abda.bitbucket.io\homework\02norfolk_employee_data.csv";
-	df = CSV.read(fpath, DataFrame);
-	first(df, 5)
-end
 
 # ╔═╡ Cell order:
 # ╠═f4f05182-38b6-4bfc-bcbb-86ceb63cecbb
@@ -390,25 +429,33 @@ end
 # ╠═8cbd6987-c9a0-471e-85ad-e987e7383b12
 # ╠═b31e0f83-2f64-44c6-998c-fd7be90cedd5
 # ╠═fc4fccfa-00ae-431d-b5e7-ddb7e8cde96d
-# ╟─7bc43c2b-4a41-4f3b-b193-875c7f558ce5
 # ╠═5ff7c63f-b926-4c11-b219-dbc6948b9cd7
-# ╠═78586ab6-e1c1-4731-aa2b-6bd73c1d6d64
+# ╟─78586ab6-e1c1-4731-aa2b-6bd73c1d6d64
+# ╠═6e9e9d2a-db6f-4732-b8fb-293737f7a87d
+# ╟─197973a1-2cde-4be5-b4dc-608ec55f57f4
+# ╟─d211f8d8-81f0-4950-a417-8f46b73cb079
+# ╠═f7f0254c-ea83-4ac9-a732-662b7d569008
+# ╠═8a5b2359-8b2f-493a-8ec8-f9c32f251b8d
 # ╠═900c3192-c752-4bca-8f83-ba6c8eb56245
-# ╠═b99d128a-6179-4644-8bff-8d7b23cc7a5e
-# ╠═4c671e0d-6020-4a1e-8770-3e4081e9c7d3
-# ╠═4c27de3c-bb06-4c98-b3c7-a69c69af529c
-# ╠═197973a1-2cde-4be5-b4dc-608ec55f57f4
-# ╠═b383b083-5099-475f-acc4-27c9501c542d
-# ╠═00dae8e7-1358-4e49-a851-18812969199e
-# ╠═187f2f8b-1e26-4b57-bec5-135b8dc7637b
-# ╠═5c538050-fe6d-48bc-b206-e3bd45462cfe
-# ╠═8ce5267a-b1cb-40b0-91ff-27851db5d3a8
-# ╠═ab1e4301-b614-4641-9f14-572dd6b0feb2
-# ╠═aeae52f9-f4b3-451a-bc83-09d2d96b6d19
+# ╠═16ea8e44-f818-4f7e-8db6-c2e7be14f067
+# ╠═39257b51-2440-4dfe-93b8-7ae998f82135
 # ╠═4532be5c-275d-4445-a3a4-b86e747b22c3
-# ╠═a5258ead-99c4-4e43-92e1-b3cdf2d16a61
-# ╠═095ea8de-8f51-4410-b48c-49df60176e84
-# ╠═0eb51927-2903-499d-a911-826319149247
-# ╠═3513525c-db20-4f5a-84ee-16569ea4ebd9
+# ╠═aeae52f9-f4b3-451a-bc83-09d2d96b6d19
+# ╠═3be7aaac-d17d-48ea-ab59-57c90d938489
+# ╠═0a14d343-334f-4c00-bd8d-1dff602f04ab
+# ╠═feccab08-ff0a-4f27-9c3d-dace4ff7af02
+# ╠═4c4c2d10-f696-4eed-b430-6777b52f4b0d
+# ╟─64651fec-5471-473c-9158-225e3a4d9585
+# ╟─095ea8de-8f51-4410-b48c-49df60176e84
+# ╠═a770c7e9-8b4c-4674-b303-b1f01b4bd287
+# ╠═21476edb-54c7-4dd6-8ad3-876368c4c6c3
+# ╠═21d71472-7eef-48f7-89d7-c1b1a38ef047
+# ╠═a51cc963-8e5d-4984-8468-91e283d8585f
+# ╠═9c9fbfd9-e653-49a1-b45b-14620119b551
+# ╟─95a6fbae-4aed-4660-9430-451d85dfbb5a
+# ╠═3ad2303c-f85a-41b4-ada3-dab8615fe558
+# ╠═7bc43c2b-4a41-4f3b-b193-875c7f558ce5
+# ╠═05aa5f83-eb21-4925-bb38-537f0664873b
+# ╠═57603099-e396-41be-9ce8-575a9f3dacce
+# ╠═51ab3fa3-fdc7-40f0-9dd2-d5d4be3f0f94
 # ╟─bc121ee0-30df-4542-b25f-7c6f51b8d6d2
-# ╠═0c5cac5f-a92a-426d-87bd-6c02d8e31626
