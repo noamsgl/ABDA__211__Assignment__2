@@ -185,16 +185,13 @@ The fact that the prior is so flat compared to the posterior alludes to the fact
 # ╔═╡ 9fd59715-6aaf-4786-b417-39f795811e52
 md"""
 ## Model 2: Fully Seperate
-Here, we account for warp tension $T$ as well. We let each parameter $W, T$ have it's own set of parameters (not shared).
-
-TODO: Fix this description
+Here, we account for warp tension $T$ as well. We let each variable $W, T$ have it's own set of parameters (not shared).
 
 $λ_0 = 27$
-$λ_1[W] ∼ Exponential(λ_0) \space \forall W \in \{A, B\}$
-$λ_2[T] ∼ Exponential(λ_0) \space \forall T \in \{L, M, H\}$
-$obs[i] ∼ Poisson(λ_1[W_i]) + Poisson(λ_2[T_i]) \space \forall i$
+$λ[w, t] ∼ Exponential(λ_0) \space \forall w,t \in \{A, B\} \times \{L, M, H\}$
+$obs[i] ∼ Poisson(λ[W_i, T_i]) \space \forall i$
 
-Where $obs[i]$ is the number of breaks in the $i$'th loom.
+Where $obs[i]$ is the number of breaks in the $i$'th loom and $W_i, T_i$ are the wool type and wool tension, respectively.
 
 """
 
@@ -266,17 +263,17 @@ This could be because there are more parameters, so we have less certainty per e
 
 # ╔═╡ e4d63042-80d5-4bf0-82e9-a961f6b56d29
 let	
-# 	todo: Fix VLines
 	gdf = groupby(warpbreaks_df, [:Wool, :Tension])
 	means = combine(gdf, :Breaks => mean)
 	
 	density(chn1_seperate[:,:,1], lab="posterior", color=:red)  # A density plot of the 1st sampled chain
 	density!(chn1_seperate_prior, label="prior",  legend=:topright, color=:cyan)  # The prior
 	vline!([mean(warpbreaks_df[(warpbreaks_df.Wool .== "A") .& (warpbreaks_df.Tension .== "H"), :Breaks])], linewidth = 2, subplot=1, color=:yellow, label="mean observation for wool A, tension H",)  # The mean observation for wool A
-	vline!([mean(warpbreaks_df[warpbreaks_df.Wool .== "B", :Breaks])/2], linewidth = 2, subplot=2, color=:yellow, label="mean/2 observation for wool B",)  # The mean observation for wool B
-	vline!([mean(warpbreaks_df[warpbreaks_df.Tension .== "H", :Breaks])/2], linewidth = 2, subplot=3, color=:yellow, label="mean/2 observation for tension H",)  # The mean observation for tension H
-	vline!([mean(warpbreaks_df[warpbreaks_df.Tension .== "L", :Breaks])/2], linewidth = 2, subplot=4, color=:yellow, label="mean/2 observation for tension L",)  # The mean observation for tension L
-	vline!([mean(warpbreaks_df[warpbreaks_df.Tension .== "M", :Breaks])/2], linewidth = 2, subplot=5, color=:yellow, label="mean/2 observation for tension M",)  # The mean observation for tension M
+	vline!([mean(warpbreaks_df[(warpbreaks_df.Wool .== "A") .& (warpbreaks_df.Tension .== "L"), :Breaks])], linewidth = 2, subplot=2, color=:yellow, label="mean observation for wool A, tension L",)  # The mean observation for wool A
+	vline!([mean(warpbreaks_df[(warpbreaks_df.Wool .== "A") .& (warpbreaks_df.Tension .== "M"), :Breaks])], linewidth = 2, subplot=3, color=:yellow, label="mean observation for wool A, tension M",)  # The mean observation for wool A
+	vline!([mean(warpbreaks_df[(warpbreaks_df.Wool .== "B") .& (warpbreaks_df.Tension .== "H"), :Breaks])], linewidth = 2, subplot=4, color=:yellow, label="mean observation for wool B, tension H",)  # The mean observation for wool A
+	vline!([mean(warpbreaks_df[(warpbreaks_df.Wool .== "B") .& (warpbreaks_df.Tension .== "L"), :Breaks])], linewidth = 2, subplot=5, color=:yellow, label="mean observation for wool B, tension L",)  # The mean observation for wool A
+	vline!([mean(warpbreaks_df[(warpbreaks_df.Wool .== "B") .& (warpbreaks_df.Tension .== "M"), :Breaks])], linewidth = 2, subplot=6, color=:yellow, label="mean observation for wool B, tension M",)  # The mean observation for wool A
 end
 
 # ╔═╡ fc4fccfa-00ae-431d-b5e7-ddb7e8cde96d
@@ -537,8 +534,57 @@ md"""
 # ╔═╡ 57603099-e396-41be-9ce8-575a9f3dacce
 chn2_pooled_prior = sample(norfolk_pooled(ex_norfolk_df.ysalary, ex_norfolk_df.department_code), Prior(), 10000)
 
-# ╔═╡ 51ab3fa3-fdc7-40f0-9dd2-d5d4be3f0f94
-plot(chn2_pooled_prior)
+# ╔═╡ bab3fbb3-ee1b-4fe1-8008-dc0ceacf74fd
+md"""
+#### Sampling the Posterior
+"""
+
+# ╔═╡ fc600ded-c237-482e-b7d3-a0081836c4bc
+chn2_pooled = sample(norfolk_pooled(ex_norfolk_df.ysalary, ex_norfolk_df.department_code), NUTS(), 1000)
+
+# ╔═╡ 549f155c-3172-47e6-b539-fe5e20cbf6ef
+describe(chn2_pooled)
+
+# ╔═╡ 42745078-68c6-4f18-8400-694dbec0c1e0
+plot(chn2_pooled)
+
+# ╔═╡ 11352b72-d9cc-4b06-9c0c-9f05ee5e657c
+md"""
+## Model 2: Fully Seperate
+We account for department $D$ and employee status $E$. We let each variable $D, E$ have it's own set of parameters (not shared).
+
+$μ_0 = 53000$
+
+$σ_0 = 22800$
+
+$μ[i] ~ LogNormal(μ_0, σ_0) \space \forall i \in [1,...,165]$
+
+$σ[i] ~ LogNormal(μ_0, σ_0) \space \forall i \in [1,...,165]$
+
+$obs[i] ∼ Normal(μ[D_i],σ[D_i]) \space \forall i$
+
+"""
+
+
+
+# ╔═╡ 9e83a188-f71d-4c99-861b-cd7430fdf22f
+@model function norfolk_seperate(salary, department, status)
+	μ0 = 53000
+	σ0 = 22800
+
+	# μs ~ MvLogNormal(MvNormal(fill(μ0, length(unique(department))), σ0))
+	μs ~ MvNormal(fill(μ0, length(unique(department))), σ0)
+	σs ~ product_distribution(fill(Exponential(1), length(unique(department))))
+	
+	for i in eachindex(salary)
+		salary[i] ~ LogNormal(μs[department[i]], σs[department[i]])
+	end
+	
+	
+end
+
+# ╔═╡ 1679a7c3-a0d8-44c1-a24a-bc080a3992b0
+@model function norfolk_hier(
 
 # ╔═╡ bc121ee0-30df-4542-b25f-7c6f51b8d6d2
 md"""
@@ -571,11 +617,11 @@ md"""
 # ╠═5ac5e359-6964-41e4-a7ee-fb85756f130a
 # ╟─24ebf4be-0b4e-4158-ba05-b71ddfec3c44
 # ╠═9ff9b9b0-3438-438d-920f-efb32a27cbca
-# ╠═6c478f37-ecb9-4a54-a252-8bfc21251a24
+# ╟─6c478f37-ecb9-4a54-a252-8bfc21251a24
 # ╠═4d6cf4f7-961a-4fb9-8ea6-5babe84cafa7
 # ╠═58675fd9-d1fb-4d09-9879-12b495fa154a
 # ╠═d334e9d1-f55c-44ea-b3bc-5b7afb7df84c
-# ╟─520a5338-d39d-4a41-a133-f9257a6b312e
+# ╠═520a5338-d39d-4a41-a133-f9257a6b312e
 # ╠═7b61939d-4fdd-4cf3-9396-bc669d79c69d
 # ╠═5da2340b-0ef1-4454-83ba-8557fada0b98
 # ╠═58123c1a-8ae1-4858-b847-b842a07fd2f8
@@ -635,7 +681,13 @@ md"""
 # ╠═3ad2303c-f85a-41b4-ada3-dab8615fe558
 # ╟─7bc43c2b-4a41-4f3b-b193-875c7f558ce5
 # ╠═05aa5f83-eb21-4925-bb38-537f0664873b
-# ╠═f995c150-0ab5-4cd5-926b-5412fcd688ee
+# ╟─f995c150-0ab5-4cd5-926b-5412fcd688ee
 # ╠═57603099-e396-41be-9ce8-575a9f3dacce
-# ╠═51ab3fa3-fdc7-40f0-9dd2-d5d4be3f0f94
-# ╟─bc121ee0-30df-4542-b25f-7c6f51b8d6d2
+# ╠═bab3fbb3-ee1b-4fe1-8008-dc0ceacf74fd
+# ╠═fc600ded-c237-482e-b7d3-a0081836c4bc
+# ╠═549f155c-3172-47e6-b539-fe5e20cbf6ef
+# ╠═42745078-68c6-4f18-8400-694dbec0c1e0
+# ╠═11352b72-d9cc-4b06-9c0c-9f05ee5e657c
+# ╠═9e83a188-f71d-4c99-861b-cd7430fdf22f
+# ╠═1679a7c3-a0d8-44c1-a24a-bc080a3992b0
+# ╠═bc121ee0-30df-4542-b25f-7c6f51b8d6d2
