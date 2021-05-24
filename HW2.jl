@@ -495,7 +495,7 @@ The `extended_norfolk_df` DataFrame holds extra statistics regarding the departm
 # ╔═╡ 3ad2303c-f85a-41b4-ada3-dab8615fe558
 begin
 	inner_df = leftjoin(norfolk_df, departments_df, on=:Department)
-	extended_norfolk_df = leftjoin(inner_df, status_df, on=:"Employee Status")
+	ex_norfolk_df = leftjoin(inner_df, status_df, on=:"Employee Status")
 end
 
 # ╔═╡ 7bc43c2b-4a41-4f3b-b193-875c7f558ce5
@@ -520,17 +520,25 @@ $obs[i] ∼ LogNormal(μ[D_i],σ[D_i]) \space \forall i$
 @model function norfolk_pooled(salary, department)
 	μ0 = 53000
 	σ0 = 22800
-	μs ~ MvLogNormal(MvNormal(fill(μ0, length(unique(department))), σ0))
+	# μs ~ MvLogNormal(MvNormal(fill(μ0, length(unique(department))), σ0))
+	μs ~ MvNormal(fill(μ0, length(unique(department))), σ0)
 	σs ~ product_distribution(fill(Exponential(1), length(unique(department))))
 	
-	for i in eachindex
+	for i in eachindex(salary)
+		salary[i] ~ LogNormal(μs[department[i]], σs[department[i]])
+	end
 end
 
+# ╔═╡ f995c150-0ab5-4cd5-926b-5412fcd688ee
+md"""
+#### Sampling the Prior
+"""
+
 # ╔═╡ 57603099-e396-41be-9ce8-575a9f3dacce
-chn2_prior = sample(norfolk_departments(norfolk_df."Monthly Salary", norfolk_df.Department), Prior(), 10000)
+chn2_pooled_prior = sample(norfolk_pooled(ex_norfolk_df.ysalary, ex_norfolk_df.department_code), Prior(), 10000)
 
 # ╔═╡ 51ab3fa3-fdc7-40f0-9dd2-d5d4be3f0f94
-plot(chn2_prior)
+plot(chn2_pooled_prior)
 
 # ╔═╡ bc121ee0-30df-4542-b25f-7c6f51b8d6d2
 md"""
@@ -563,7 +571,7 @@ md"""
 # ╠═5ac5e359-6964-41e4-a7ee-fb85756f130a
 # ╟─24ebf4be-0b4e-4158-ba05-b71ddfec3c44
 # ╠═9ff9b9b0-3438-438d-920f-efb32a27cbca
-# ╟─6c478f37-ecb9-4a54-a252-8bfc21251a24
+# ╠═6c478f37-ecb9-4a54-a252-8bfc21251a24
 # ╠═4d6cf4f7-961a-4fb9-8ea6-5babe84cafa7
 # ╠═58675fd9-d1fb-4d09-9879-12b495fa154a
 # ╠═d334e9d1-f55c-44ea-b3bc-5b7afb7df84c
@@ -627,6 +635,7 @@ md"""
 # ╠═3ad2303c-f85a-41b4-ada3-dab8615fe558
 # ╟─7bc43c2b-4a41-4f3b-b193-875c7f558ce5
 # ╠═05aa5f83-eb21-4925-bb38-537f0664873b
+# ╠═f995c150-0ab5-4cd5-926b-5412fcd688ee
 # ╠═57603099-e396-41be-9ce8-575a9f3dacce
 # ╠═51ab3fa3-fdc7-40f0-9dd2-d5d4be3f0f94
 # ╟─bc121ee0-30df-4542-b25f-7c6f51b8d6d2
