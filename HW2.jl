@@ -89,7 +89,7 @@ end
 let
 	bins = 0:5:100
 	xlim = (0,100)
-	@df warpbreaks_df groupedhist(:Breaks, group=:wool_tension, bar_position = :dodge, bins=bins, xlabel="Warp Breaks", ylabel="Weave Counts", title="Warp Breaks by Tension")
+	@df warpbreaks_df groupedhist(:Breaks, group=:wool_tension, bar_position = :dodge, bins=bins, xlabel="Warp Breaks", ylabel="Weave Counts", title="Warp Breaks by Wool-Tension")
 end
 
 # ╔═╡ 24ebf4be-0b4e-4158-ba05-b71ddfec3c44
@@ -381,21 +381,21 @@ The salary distribution is *clustered*! Employees have salaries in either the ra
 
 We propose the assumption that the base salaries reflect either an hourly rate or a monthly income.
 
-We assume that any value under 1000 is an hourly rate and any value at or above 1000 is a monthly salary. We will correct for this inconsistency in a new column "Monthly Salary". According to [^2], we assume a 40 hour work week. Notice the new minimal value is 1561, up from 9.5.
+We assume that any value under 1000 is an hourly rate and any value at or above 1000 is a yearly salary. We will correct for this inconsistency in a new column "ysalary". According to [^2], we assume a 40 hour work week.
 """
 
 # ╔═╡ f7f0254c-ea83-4ac9-a732-662b7d569008
 histogram(raw_norfolk_df."Base Salary", xlabel="Base Salary", ylabel="Employees Count", label="raw data", title="All Employees")
 
 # ╔═╡ 8a5b2359-8b2f-493a-8ec8-f9c32f251b8d
-summarystats(raw_norfolk_df."Base Salary")
+summarystats(raw_norfolk_df."Base Salary") 
 
 # ╔═╡ 900c3192-c752-4bca-8f83-ba6c8eb56245
 begin
 	norfolk_df = transform(raw_norfolk_df, :"Base Salary" => ByRow(x -> x < 1000 ? 40 * 52.15 * x : x) => :"ysalary")  # add a yearly salary column
-	transform!(norfolk_df, :"Initial Hire Date" => (d -> Date.(d, "m/d/y")) => :"initial_hire_date")
-	transform!(norfolk_df, :"Date in Position" => (d -> Date.(d, "m/d/y")) => :"date_in_position")
-		transform!(norfolk_df, :"Fair Labor Standards Act (FLSA) " => (f -> categorical(f)) => :"flsa")
+	transform!(norfolk_df, :"Initial Hire Date" => (d -> Date.(d, "m/d/y")) => :"initial_hire_date")  # convert from string to Date
+	transform!(norfolk_df, :"Date in Position" => (d -> Date.(d, "m/d/y")) => :"date_in_position")  # convert from string to date
+		transform!(norfolk_df, :"Fair Labor Standards Act (FLSA) " => (f -> categorical(f)) => :"flsa")  # make FLSA categorical
 end
 
 # ╔═╡ a97446f0-5423-489d-9a81-ba9d54fd2a93
@@ -405,14 +405,14 @@ let
 end
 
 # ╔═╡ 16ea8e44-f818-4f7e-8db6-c2e7be14f067
-histogram(norfolk_df.ysalary, xlabel="Salary", ylabel="Employees Count", label="corrected data", title="All Employees")
+histogram(norfolk_df.ysalary, xlabel="Salary", ylabel="Employees Count", label="corrected data", title="Salary Distribution of all Employees")
 
 # ╔═╡ 39257b51-2440-4dfe-93b8-7ae998f82135
-summarystats(norfolk_df.ysalary)
+summarystats(norfolk_df.ysalary), std(norfolk_df.ysalary)
 
 # ╔═╡ 807bc580-ab4d-4f98-b40c-1ab3cb62faeb
 md"""
-#### Data: Initial Hire Date
+#### Data: Initial hire date
 """
 
 # ╔═╡ 5a65d06f-36c3-4c7a-a9da-5cfa0c2a3c33
@@ -432,6 +432,7 @@ scatter(norfolk_df.ysalary, norfolk_df.date_in_position, markersize=1)
 md"""
 #### Data: Fair Labor Standards Act (FLSA)
 Employees who are exempt from FLSA have a higher average salary.
+This makes sense because according to [^3], the five primary exemptions to FLSA are executive, administrative, professional, computer, and outside sales employees, which are naturally high-paying jobs.
 """
 
 # ╔═╡ 65cfb4dc-7e7a-49e9-95bf-fd99cdead502
@@ -457,17 +458,11 @@ begin
 	insertcols!(departments_df, 2,  :department_code =>1:nrow(departments_df))
 end
 
-# ╔═╡ 17301e96-274c-4cb6-bda3-ed7623fc04bb
-sort(departments_df, :mean_ysalary_dpt)
+# ╔═╡ 33957202-8fcb-479b-a181-6bb687660ccd
+summarystats(departments_df.mean_ysalary_dpt)
 
-# ╔═╡ 0a14d343-334f-4c00-bd8d-1dff602f04ab
-scatter(departments_df.mean_ysalary_dpt, departments_df.count_employees_dpt, bins=20,xlabel="Mean Salary", ylabel="Employee Count", label="departments_df", title="All Departments")
-
-# ╔═╡ feccab08-ff0a-4f27-9c3d-dace4ff7af02
-histogram(departments_df.std_ysalary_dpt, bins=20,xlabel="Salary Standard Deviation", ylabel="Department Count", label="departments_df")
-
-# ╔═╡ 4c4c2d10-f696-4eed-b430-6777b52f4b0d
-histogram(departments_df.mean_ysalary_dpt, bins=20, xlabel="Mean Salary", ylabel="Department Count", label="departments_df")
+# ╔═╡ 99b98756-89fe-47cc-99d0-a164fa2c68ef
+histogram(departments_df.count_employees_dpt, bins=50 ,xlabel="Count of Employees", ylabel="Count of Departments", lab="all departments", title="Departments by Size")
 
 # ╔═╡ 64651fec-5471-473c-9158-225e3a4d9585
 md"""
@@ -488,22 +483,13 @@ status_df = combine(groupby(norfolk_df, [:"Employee Status"]), norfolk_df ->
             std_monthly_salary_status = std(norfolk_df[!,:ysalary])
         ))
 
-# ╔═╡ 21476edb-54c7-4dd6-8ad3-876368c4c6c3
-scatter(status_df.mean_monthly_salary_status, status_df.count_employees_status, bins=20,xlabel="Mean Salary", ylabel="Employee Count", label="status_df", title="All Employee Statuses")
-
-# ╔═╡ 21d71472-7eef-48f7-89d7-c1b1a38ef047
-scatter(status_df.std_monthly_salary_status, status_df.count_employees_status, bins=20,xlabel="Standard Deviation Salary", ylabel="Employee Count", label="status_df", title="All Employee Statuses")
-
-# ╔═╡ a51cc963-8e5d-4984-8468-91e283d8585f
-histogram(status_df.mean_monthly_salary_status, bins=20,xlabel="Mean Salary", ylabel="Status Count", label="status_df", title="All Employee Statuses")
-
 # ╔═╡ 9c9fbfd9-e653-49a1-b45b-14620119b551
 histogram(status_df.std_monthly_salary_status, bins=20,xlabel="Salary Standard Deviation", ylabel="Status Count", label="status_df", title="All Employee Statuses")
 
 # ╔═╡ 95a6fbae-4aed-4660-9430-451d85dfbb5a
 md"""
 ### Data: Extended Dataframe
-The `extended_norfolk_df` DataFrame holds extra statistics regarding the department and status.
+The `extended_norfolk_df` DataFrame holds extra statistics regarding the department and status, and unique status and department codes.
 """
 
 # ╔═╡ 3ad2303c-f85a-41b4-ada3-dab8615fe558
@@ -514,21 +500,30 @@ end
 
 # ╔═╡ 7bc43c2b-4a41-4f3b-b193-875c7f558ce5
 md"""
-### Model 1
-We ignore employee status and infer the salary distributions per department.
+### Model 1: Fully Pooled
+We ignore employee status and model the salary distributions per department:
 
+$μ_0 = 53000$
+
+$σ_0 = 22800$
+
+$μ[i] ~ LogNormal(μ_0, σ_0) \space \forall i \in [1,...,165]$
+
+$σ[i] ~ LogNormal(μ_0, σ_0) \space \forall i \in [1,...,165]$
+
+$obs[i] ∼ LogNormal(μ[D_i],σ[D_i]) \space \forall i$
 
 
 """
 
 # ╔═╡ 05aa5f83-eb21-4925-bb38-537f0664873b
-@model function norfolk_departments(salaries, departments)
-	n_departments = length(unique(departments)
-	α ~ MvLogNormal(fill(0, n_departments), 1)
-	μ ~ product_distribution(fill(Exponential(10), length(unique(departments))))
-	for i in eachindex(salaries)
-		salaries[i] ~ LogNormal(μ[departments[i]], σ[departments[i]])
-	end
+@model function norfolk_pooled(salary, department)
+	μ0 = 53000
+	σ0 = 22800
+	μs ~ MvLogNormal(MvNormal(fill(μ0, length(unique(department))), σ0))
+	σs ~ product_distribution(fill(Exponential(1), length(unique(department))))
+	
+	for i in eachindex
 end
 
 # ╔═╡ 57603099-e396-41be-9ce8-575a9f3dacce
@@ -547,6 +542,7 @@ md"""
 
 [^2]: Workweek and weekend. (2021, May 23). In Wikipedia. [https://en.wikipedia.org/wiki/Workweek\_and\_weekend](https://en.wikipedia.org/wiki/Workweek_and_weekend)
 
+[^3]: [What Does It Mean To Be Exempt From FLSA? - Deputy](https://www.deputy.com/glossary/what-does-it-mean-to-be-exempt-from-flsa)
 """
 
 # ╔═╡ Cell order:
@@ -621,20 +617,15 @@ md"""
 # ╠═65cfb4dc-7e7a-49e9-95bf-fd99cdead502
 # ╟─4532be5c-275d-4445-a3a4-b86e747b22c3
 # ╠═aeae52f9-f4b3-451a-bc83-09d2d96b6d19
-# ╠═17301e96-274c-4cb6-bda3-ed7623fc04bb
-# ╠═0a14d343-334f-4c00-bd8d-1dff602f04ab
-# ╠═feccab08-ff0a-4f27-9c3d-dace4ff7af02
-# ╠═4c4c2d10-f696-4eed-b430-6777b52f4b0d
+# ╠═33957202-8fcb-479b-a181-6bb687660ccd
+# ╠═99b98756-89fe-47cc-99d0-a164fa2c68ef
 # ╟─64651fec-5471-473c-9158-225e3a4d9585
 # ╟─095ea8de-8f51-4410-b48c-49df60176e84
 # ╠═a770c7e9-8b4c-4674-b303-b1f01b4bd287
-# ╠═21476edb-54c7-4dd6-8ad3-876368c4c6c3
-# ╠═21d71472-7eef-48f7-89d7-c1b1a38ef047
-# ╠═a51cc963-8e5d-4984-8468-91e283d8585f
 # ╠═9c9fbfd9-e653-49a1-b45b-14620119b551
 # ╟─95a6fbae-4aed-4660-9430-451d85dfbb5a
 # ╠═3ad2303c-f85a-41b4-ada3-dab8615fe558
-# ╠═7bc43c2b-4a41-4f3b-b193-875c7f558ce5
+# ╟─7bc43c2b-4a41-4f3b-b193-875c7f558ce5
 # ╠═05aa5f83-eb21-4925-bb38-537f0664873b
 # ╠═57603099-e396-41be-9ce8-575a9f3dacce
 # ╠═51ab3fa3-fdc7-40f0-9dd2-d5d4be3f0f94
