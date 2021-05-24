@@ -5,7 +5,7 @@ using Markdown
 using InteractiveUtils
 
 # ╔═╡ f4f05182-38b6-4bfc-bcbb-86ceb63cecbb
-using Distributions, Turing, StatsPlots, Random, RDatasets, CSV, DataFrames, CategoricalArrays
+using Distributions, Turing, StatsPlots, Random, RDatasets, CSV, DataFrames, CategoricalArrays, Dates
 
 # ╔═╡ cff83100-b955-11eb-2950-75483cd235df
 md""" 
@@ -86,7 +86,11 @@ let
 end
 
 # ╔═╡ 5ac5e359-6964-41e4-a7ee-fb85756f130a
-
+let
+	bins = 0:5:100
+	xlim = (0,100)
+	@df warpbreaks_df groupedhist(:Breaks, group=:wool_tension, bar_position = :dodge, bins=bins, xlabel="Warp Breaks", ylabel="Weave Counts", title="Warp Breaks by Tension")
+end
 
 # ╔═╡ 24ebf4be-0b4e-4158-ba05-b71ddfec3c44
 md"""
@@ -143,6 +147,12 @@ chn1_pooled = sample(warp_breaks(warpbreaks_df.Breaks, warpbreaks_df.Wool), NUTS
 # ╔═╡ 5da2340b-0ef1-4454-83ba-8557fada0b98
 describe(chn1_pooled)
 
+# ╔═╡ 58123c1a-8ae1-4858-b847-b842a07fd2f8
+mean(chn1_pooled[:λB] ./ chn1_pooled[:λA])
+
+# ╔═╡ 702a8463-f89f-4fd7-8a7a-3053bebd5f28
+std(chn1_pooled[:λB] ./ chn1_pooled[:λA])
+
 # ╔═╡ c1e5aa03-e300-477b-bd42-b4d0c14457b2
 plot(chn1_pooled)
 
@@ -177,6 +187,7 @@ md"""
 ## Model 2: Fully Seperate
 Here, we account for warp tension $T$ as well. We let each parameter $W, T$ have it's own set of parameters (not shared).
 
+TODO: Fix this description
 
 $λ_0 = 27$
 $λ_1[W] ∼ Exponential(λ_0) \space \forall W \in \{A, B\}$
@@ -190,32 +201,28 @@ Where $obs[i]$ is the number of breaks in the $i$'th loom.
 # ╔═╡ 70c61890-a65f-49a8-be91-9bb9ddbcbf00
 @model function warp_breaks_seperate(breaks, wool, tension)
 	λ0 = 27
-	λA ~ Exponential(λ0)
-	λB ~ Exponential(λ0)
-	λL ~ Exponential(λ0)
-	λM ~ Exponential(λ0)
-	λH ~ Exponential(λ0)
+	λAL ~ Exponential(λ0)
+	λAM ~ Exponential(λ0)
+	λAH ~ Exponential(λ0)
+	λBL ~ Exponential(λ0)
+	λBM ~ Exponential(λ0)
+	λBH ~ Exponential(λ0)
 	
 	for i in eachindex(breaks)
-		if wool[i] == "A"
-			λ1 = λA
-		elseif wool[i] == "B"
-			λ1 = λB
-		else
-			throw(ErrorException("Invalid Wool Type"))
+		if (wool[i] == "A") .& (tension[i] == "L")
+			λ1 = λAL
+		elseif (wool[i] == "A") .& (tension[i] == "M")
+			λ1 = λAM
+		elseif (wool[i] == "A") .& (tension[i] == "H")
+			λ1 = λAH
+		elseif (wool[i] == "B") .& (tension[i] == "L")
+			λ1 = λBL
+		elseif (wool[i] == "B") .& (tension[i] == "M")
+			λ1 = λBM
+		elseif (wool[i] == "B") .& (tension[i] == "H")
+			λ1 = λBH
 		end
-
-		if tension[i] == "L"
-			λ2 = λL
-		elseif tension[i] == "M"
-			λ2 = λM
-		elseif tension[i] == "H"
-			λ2 = λH
-		else
-			throw(ErrorException("Invalid Tension Type"))
-		end
-
-		breaks[i] ~ Poisson(λ1 + λ2)
+		breaks[i] ~ Poisson(λ1)
 	end
 end
 
@@ -259,28 +266,33 @@ This could be because there are more parameters, so we have less certainty per e
 
 # ╔═╡ e4d63042-80d5-4bf0-82e9-a961f6b56d29
 let	
+# 	todo: Fix VLines
 	gdf = groupby(warpbreaks_df, [:Wool, :Tension])
 	means = combine(gdf, :Breaks => mean)
 	
 	density(chn1_seperate[:,:,1], lab="posterior", color=:red)  # A density plot of the 1st sampled chain
 	density!(chn1_seperate_prior, label="prior",  legend=:topright, color=:cyan)  # The prior
-	vline!([mean(warpbreaks_df[warpbreaks_df.Wool .== "A", :Breaks])/2], linewidth = 2, subplot=1, color=:yellow, label="mean/2 observation for wool A",)  # The mean observation for wool A
+	vline!([mean(warpbreaks_df[(warpbreaks_df.Wool .== "A") .& (warpbreaks_df.Tension .== "H"), :Breaks])], linewidth = 2, subplot=1, color=:yellow, label="mean observation for wool A, tension H",)  # The mean observation for wool A
 	vline!([mean(warpbreaks_df[warpbreaks_df.Wool .== "B", :Breaks])/2], linewidth = 2, subplot=2, color=:yellow, label="mean/2 observation for wool B",)  # The mean observation for wool B
 	vline!([mean(warpbreaks_df[warpbreaks_df.Tension .== "H", :Breaks])/2], linewidth = 2, subplot=3, color=:yellow, label="mean/2 observation for tension H",)  # The mean observation for tension H
 	vline!([mean(warpbreaks_df[warpbreaks_df.Tension .== "L", :Breaks])/2], linewidth = 2, subplot=4, color=:yellow, label="mean/2 observation for tension L",)  # The mean observation for tension L
 	vline!([mean(warpbreaks_df[warpbreaks_df.Tension .== "M", :Breaks])/2], linewidth = 2, subplot=5, color=:yellow, label="mean/2 observation for tension M",)  # The mean observation for tension M
 end
 
-# ╔═╡ b31e0f83-2f64-44c6-998c-fd7be90cedd5
-histogram(warpbreaks_df.Breaks, bins=30)
-
 # ╔═╡ fc4fccfa-00ae-431d-b5e7-ddb7e8cde96d
 md"""
-## Model 2: Hierarchical on Wool
+## Model 3: Hierarchical
 We would like to account for wool tension $T \in \{L, M, H\}$ in a multilevel model.
 
 $λ_0 = 27$
+
+$μ = 5$
+
+$σ = 1$
+
+
 $λ_1 ∼ Exponential(λ_0)$
+
 $obs[i] ∼ Poisson(λ_1) \space \forall i$
 
 Where $obs[i]$ is the number of breaks in the $i$'th loom.
@@ -288,15 +300,59 @@ Where $obs[i]$ is the number of breaks in the $i$'th loom.
 """
 
 # ╔═╡ 5ff7c63f-b926-4c11-b219-dbc6948b9cd7
-# @model function warp_breaks_hier(breaks, tension)
-# 	λ0 = 27
-# 	σ ~ Exponential(1)  # Prior for std of tensions
+@model function warp_breaks_hier(breaks, wool, tension)
+	λ0 = 27
+	λAL ~ Exponential(λ0)
+	λAM ~ Exponential(λ0)
+	λAH ~ Exponential(λ0)
 	
-# 	α ~ MvNormal(fill(λ0, length(tension), 1.5)  # Prior for average tension break rate
-# 	MvNormal(fill(μ0, length(tension), σ)
-# 	λ1 ~ Exponential(λ0)
-# 	breaks ~ product_distribution(fill(Poisson(λ1), length(breaks)))
-# end
+	Δ ~ Uniform(0, 10)
+	
+	for i in eachindex(breaks)
+		if (wool[i] == "A") .& (tension[i] == "L")
+			λ1 = λAL
+		elseif (wool[i] == "A") .& (tension[i] == "M")
+			λ1 = λAM
+		elseif (wool[i] == "A") .& (tension[i] == "H")
+			λ1 = λAH
+		elseif (wool[i] == "B") .& (tension[i] == "L")
+			λ1 = λAL * Δ
+		elseif (wool[i] == "B") .& (tension[i] == "M")
+			λ1 = λAM * Δ
+		elseif (wool[i] == "B") .& (tension[i] == "H")
+			λ1 = λAH * Δ
+		end
+		breaks[i] ~ Poisson(λ1)
+	end
+end
+
+# ╔═╡ 02638f99-7697-4357-9fd4-25759f69b135
+md"""
+#### Sampling the Prior
+"""
+
+# ╔═╡ 0f737394-034e-442a-9f85-08e1987caf0f
+chn1_hier_prior = sample(warp_breaks_hier(warpbreaks_df.Breaks, warpbreaks_df.Wool, warpbreaks_df.Tension), Prior(), 10000)
+
+# ╔═╡ 81db3224-542b-414b-b5db-3a630f3ef4fb
+describe(chn1_hier_prior)
+
+# ╔═╡ ca435de3-91f6-498b-8710-103fb4402385
+plot(chn1_hier_prior)
+
+# ╔═╡ 3dc511b4-a77c-4224-9726-375cc49e2aea
+md"""
+#### Sampling the Posterior
+"""
+
+# ╔═╡ ed2ed1b9-8b18-41d2-b998-3d73d4073018
+chn1_hier = sample(warp_breaks_hier(warpbreaks_df.Breaks, warpbreaks_df.Wool, warpbreaks_df.Tension), NUTS(), MCMCThreads(), 10000, 4)
+
+# ╔═╡ a939664d-e678-4f96-839c-957a356f55c7
+describe(chn1_hier)
+
+# ╔═╡ d4854857-3c15-47c2-aa26-8169889cb101
+plot(chn1_hier)
 
 # ╔═╡ 78586ab6-e1c1-4731-aa2b-6bd73c1d6d64
 md"""
@@ -329,19 +385,59 @@ We assume that any value under 1000 is an hourly rate and any value at or above 
 """
 
 # ╔═╡ f7f0254c-ea83-4ac9-a732-662b7d569008
-histogram(raw_norfolk_df."Base Salary", xlabel="Base Salary", ylabel="Employees Count", label="raw data", title="Distribution of Base Salary")
+histogram(raw_norfolk_df."Base Salary", xlabel="Base Salary", ylabel="Employees Count", label="raw data", title="All Employees")
 
 # ╔═╡ 8a5b2359-8b2f-493a-8ec8-f9c32f251b8d
 summarystats(raw_norfolk_df."Base Salary")
 
 # ╔═╡ 900c3192-c752-4bca-8f83-ba6c8eb56245
-norfolk_df = transform(raw_norfolk_df, :"Base Salary" => ByRow(x -> x < 1000 ? 40 * (52.15/12) * x : x) => :"Monthly Salary")  # add a monthly salary column
+begin
+	norfolk_df = transform(raw_norfolk_df, :"Base Salary" => ByRow(x -> x < 1000 ? 40 * 52.15 * x : x) => :"ysalary")  # add a yearly salary column
+	transform!(norfolk_df, :"Initial Hire Date" => (d -> Date.(d, "m/d/y")) => :"initial_hire_date")
+	transform!(norfolk_df, :"Date in Position" => (d -> Date.(d, "m/d/y")) => :"date_in_position")
+		transform!(norfolk_df, :"Fair Labor Standards Act (FLSA) " => (f -> categorical(f)) => :"flsa")
+end
+
+# ╔═╡ a97446f0-5423-489d-9a81-ba9d54fd2a93
+let
+	s = norfolk_df."Initial Hire Date"[1]
+	Date(s,"m/d/y")
+end
 
 # ╔═╡ 16ea8e44-f818-4f7e-8db6-c2e7be14f067
-histogram(norfolk_df."Monthly Salary", xlabel="Monthly Salary", ylabel="Employees Count", label="corrected data", title="Distribution of Monthly Salary")
+histogram(norfolk_df.ysalary, xlabel="Salary", ylabel="Employees Count", label="corrected data", title="All Employees")
 
 # ╔═╡ 39257b51-2440-4dfe-93b8-7ae998f82135
-summarystats(norfolk_df."Monthly Salary")
+summarystats(norfolk_df.ysalary)
+
+# ╔═╡ 807bc580-ab4d-4f98-b40c-1ab3cb62faeb
+md"""
+#### Data: Initial Hire Date
+"""
+
+# ╔═╡ 5a65d06f-36c3-4c7a-a9da-5cfa0c2a3c33
+scatter(norfolk_df.ysalary, norfolk_df.initial_hire_date, markersize=1)
+
+# ╔═╡ 84493a57-6082-4a28-bf17-22053e322b83
+md"""
+#### Data: Date in Position
+It is visible that the more senior employees have a higher average salary.
+"""
+
+
+# ╔═╡ 4e57b52e-79cd-4102-98af-5675abfd6442
+scatter(norfolk_df.ysalary, norfolk_df.date_in_position, markersize=1)
+
+# ╔═╡ 32be7e4a-4827-4cee-989b-76169c91a3d5
+md"""
+#### Data: Fair Labor Standards Act (FLSA)
+Employees who are exempt from FLSA have a higher average salary.
+"""
+
+# ╔═╡ 65cfb4dc-7e7a-49e9-95bf-fd99cdead502
+let
+	@df norfolk_df groupedhist(:ysalary, group=:flsa, bar_position = :dodge, xlabel="Yearly Salary", ylabel="Employee Count", title="Employees by FLSA")
+end
 
 # ╔═╡ 4532be5c-275d-4445-a3a4-b86e747b22c3
 md"""
@@ -354,24 +450,24 @@ The means and standard deviations are very different,
 begin
 	departments_df = combine(groupby(norfolk_df, [:Department]), norfolk_df -> 
         DataFrame(
-            mean_monthly_salary_dpt = mean(norfolk_df[!,"Monthly Salary"]),
+            mean_ysalary_dpt = mean(norfolk_df[!,"ysalary"]),
             count_employees_dpt = nrow(norfolk_df),
-            std_monthly_salary_dpt = std(norfolk_df[!,"Monthly Salary"])
+            std_ysalary_dpt = std(norfolk_df[!,"ysalary"])
         ))
 	insertcols!(departments_df, 2,  :department_code =>1:nrow(departments_df))
 end
 
-# ╔═╡ 3be7aaac-d17d-48ea-ab59-57c90d938489
-scatter(departments_df.std_monthly_salary_dpt, departments_df.count_employees_dpt, bins=20,xlabel="Salary Standard Deviation", ylabel="Employee Count", label="departments_df", title="All Departments")
+# ╔═╡ 17301e96-274c-4cb6-bda3-ed7623fc04bb
+sort(departments_df, :mean_ysalary_dpt)
 
 # ╔═╡ 0a14d343-334f-4c00-bd8d-1dff602f04ab
-scatter(departments_df.mean_monthly_salary_dpt, departments_df.count_employees_dpt, bins=20,xlabel="Mean Salary", ylabel="Employee Count", label="departments_df", title="All Departments")
+scatter(departments_df.mean_ysalary_dpt, departments_df.count_employees_dpt, bins=20,xlabel="Mean Salary", ylabel="Employee Count", label="departments_df", title="All Departments")
 
 # ╔═╡ feccab08-ff0a-4f27-9c3d-dace4ff7af02
-histogram(departments_df.std_monthly_salary_dpt, bins=20,xlabel="Salary Standard Deviation", ylabel="Department Count", label="departments_df")
+histogram(departments_df.std_ysalary_dpt, bins=20,xlabel="Salary Standard Deviation", ylabel="Department Count", label="departments_df")
 
 # ╔═╡ 4c4c2d10-f696-4eed-b430-6777b52f4b0d
-histogram(departments_df.mean_monthly_salary_dpt, bins=20,xlabel="Mean Salary", ylabel="Department Count", label="departments_df")
+histogram(departments_df.mean_ysalary_dpt, bins=20, xlabel="Mean Salary", ylabel="Department Count", label="departments_df")
 
 # ╔═╡ 64651fec-5471-473c-9158-225e3a4d9585
 md"""
@@ -387,9 +483,9 @@ The are 17 employement statuses total. 14 statuses have little employee counts (
 # ╔═╡ a770c7e9-8b4c-4674-b303-b1f01b4bd287
 status_df = combine(groupby(norfolk_df, [:"Employee Status"]), norfolk_df -> 
         DataFrame(
-            mean_monthly_salary_status = mean(norfolk_df[!,"Monthly Salary"]),
+            mean_monthly_salary_status = mean(norfolk_df[!,:ysalary]),
             count_employees_status = nrow(norfolk_df),
-            std_monthly_salary_status = std(norfolk_df[!,"Monthly Salary"])
+            std_monthly_salary_status = std(norfolk_df[!,:ysalary])
         ))
 
 # ╔═╡ 21476edb-54c7-4dd6-8ad3-876368c4c6c3
@@ -478,12 +574,14 @@ md"""
 # ╟─520a5338-d39d-4a41-a133-f9257a6b312e
 # ╠═7b61939d-4fdd-4cf3-9396-bc669d79c69d
 # ╠═5da2340b-0ef1-4454-83ba-8557fada0b98
+# ╠═58123c1a-8ae1-4858-b847-b842a07fd2f8
+# ╠═702a8463-f89f-4fd7-8a7a-3053bebd5f28
 # ╠═c1e5aa03-e300-477b-bd42-b4d0c14457b2
 # ╟─c7b066a2-cc0d-4d85-b7f9-a279b3345ee4
 # ╟─c5963b29-f843-4e38-ab21-51b3d891a197
 # ╠═88f73f6d-0709-46fb-b7a6-a9898a2f044c
 # ╟─b2f5b368-2940-442d-936f-58aec32c889e
-# ╟─9fd59715-6aaf-4786-b417-39f795811e52
+# ╠═9fd59715-6aaf-4786-b417-39f795811e52
 # ╠═70c61890-a65f-49a8-be91-9bb9ddbcbf00
 # ╟─6c582d07-1dcd-4896-bc92-cd419c8ef78c
 # ╠═fa906b36-9d5a-45f9-ba21-93276e663e62
@@ -495,9 +593,16 @@ md"""
 # ╠═c89b51c7-e6ff-4cf7-9ab2-0b536784b686
 # ╟─7b11a82c-dafd-450e-9db2-b6c6a50ba114
 # ╠═e4d63042-80d5-4bf0-82e9-a961f6b56d29
-# ╠═b31e0f83-2f64-44c6-998c-fd7be90cedd5
 # ╠═fc4fccfa-00ae-431d-b5e7-ddb7e8cde96d
 # ╠═5ff7c63f-b926-4c11-b219-dbc6948b9cd7
+# ╟─02638f99-7697-4357-9fd4-25759f69b135
+# ╠═0f737394-034e-442a-9f85-08e1987caf0f
+# ╠═81db3224-542b-414b-b5db-3a630f3ef4fb
+# ╠═ca435de3-91f6-498b-8710-103fb4402385
+# ╠═3dc511b4-a77c-4224-9726-375cc49e2aea
+# ╠═ed2ed1b9-8b18-41d2-b998-3d73d4073018
+# ╠═a939664d-e678-4f96-839c-957a356f55c7
+# ╠═d4854857-3c15-47c2-aa26-8169889cb101
 # ╟─78586ab6-e1c1-4731-aa2b-6bd73c1d6d64
 # ╠═6e9e9d2a-db6f-4732-b8fb-293737f7a87d
 # ╟─197973a1-2cde-4be5-b4dc-608ec55f57f4
@@ -505,11 +610,18 @@ md"""
 # ╠═f7f0254c-ea83-4ac9-a732-662b7d569008
 # ╠═8a5b2359-8b2f-493a-8ec8-f9c32f251b8d
 # ╠═900c3192-c752-4bca-8f83-ba6c8eb56245
+# ╠═a97446f0-5423-489d-9a81-ba9d54fd2a93
 # ╠═16ea8e44-f818-4f7e-8db6-c2e7be14f067
 # ╠═39257b51-2440-4dfe-93b8-7ae998f82135
-# ╠═4532be5c-275d-4445-a3a4-b86e747b22c3
+# ╟─807bc580-ab4d-4f98-b40c-1ab3cb62faeb
+# ╠═5a65d06f-36c3-4c7a-a9da-5cfa0c2a3c33
+# ╟─84493a57-6082-4a28-bf17-22053e322b83
+# ╠═4e57b52e-79cd-4102-98af-5675abfd6442
+# ╟─32be7e4a-4827-4cee-989b-76169c91a3d5
+# ╠═65cfb4dc-7e7a-49e9-95bf-fd99cdead502
+# ╟─4532be5c-275d-4445-a3a4-b86e747b22c3
 # ╠═aeae52f9-f4b3-451a-bc83-09d2d96b6d19
-# ╠═3be7aaac-d17d-48ea-ab59-57c90d938489
+# ╠═17301e96-274c-4cb6-bda3-ed7623fc04bb
 # ╠═0a14d343-334f-4c00-bd8d-1dff602f04ab
 # ╠═feccab08-ff0a-4f27-9c3d-dace4ff7af02
 # ╠═4c4c2d10-f696-4eed-b430-6777b52f4b0d
