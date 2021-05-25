@@ -550,10 +550,10 @@ md"""
 """
 
 # ╔═╡ fc600ded-c237-482e-b7d3-a0081836c4bc
-# chn2_pooled = sample(norfolk_pooled(ex_norfolk_df.ysalary, ex_norfolk_df.department_code), HMC(0.1, 5), 10000)
+chn2_pooled = sample(norfolk_pooled(ex_norfolk_df.ysalary, ex_norfolk_df.department_code), HMC(0.1, 5), 10000)
 
 # ╔═╡ 549f155c-3172-47e6-b539-fe5e20cbf6ef
-# describe(chn2_pooled)
+describe(chn2_pooled)
 
 # ╔═╡ 42745078-68c6-4f18-8400-694dbec0c1e0
 # plot(chn2_pooled)
@@ -594,7 +594,7 @@ $obs[i] ∼ Normal(μd[D_i] + μs[S_i],σd[D_i] + σs[S_i]) \space \forall i$
 	
 	
 	for i in eachindex(salary)
-		salary[i] ~ LogNormal(μs[department[i]] + μs[status[i]], σd[department[i]] + σs[status[i]])
+		salary[i] ~ LogNormal(μd[department[i]] + μs[status[i]], σd[department[i]] + σs[status[i]])
 	end
 end
 
@@ -609,9 +609,6 @@ chn2_sep_prior = sample(norfolk_seperate(ex_norfolk_df.ysalary, ex_norfolk_df.de
 # ╔═╡ c9a402f0-f176-4aac-889e-7e7b7e089ad1
 describe(chn2_sep_prior)
 
-# ╔═╡ cd3764ad-450e-4126-a40d-e0dd9ca7c965
-plot(chn2_sep_prior[1:10])
-
 # ╔═╡ 7b04824e-9859-46df-a6de-9d1c9192ac4c
 md"""
 #### Sampling the Posterior
@@ -619,9 +616,6 @@ md"""
 
 # ╔═╡ 715e181e-bbce-41de-9d80-c84a74c9b78f
 chn2_sep = sample(norfolk_seperate(ex_norfolk_df.ysalary, ex_norfolk_df.department_code, ex_norfolk_df.status_code), HMC(0.1, 5), 10000)
-
-# ╔═╡ 05b19afb-ca74-4580-9c8b-843c08c13897
-plot(chn2_sep[1:10])
 
 # ╔═╡ 4dd2c4f1-73cf-4bca-98f2-61905028d4b2
 md"""
@@ -781,10 +775,8 @@ md"""
 # ╠═1965172f-cd62-4b57-b189-117ae9ab9d1a
 # ╠═f41dc534-2d48-4465-894d-b54864f6e92c
 # ╠═c9a402f0-f176-4aac-889e-7e7b7e089ad1
-# ╠═cd3764ad-450e-4126-a40d-e0dd9ca7c965
 # ╠═7b04824e-9859-46df-a6de-9d1c9192ac4c
 # ╠═715e181e-bbce-41de-9d80-c84a74c9b78f
-# ╠═05b19afb-ca74-4580-9c8b-843c08c13897
 # ╟─4dd2c4f1-73cf-4bca-98f2-61905028d4b2
 # ╠═1679a7c3-a0d8-44c1-a24a-bc080a3992b0
 # ╠═fa9d3d59-e737-426f-8c74-c2664f344d2e
