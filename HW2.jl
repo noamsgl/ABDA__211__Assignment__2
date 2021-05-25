@@ -193,6 +193,8 @@ $obs[i] ∼ Poisson(λ[W_i, T_i]) \space \forall i$
 
 Where $obs[i]$ is the number of breaks in the $i$'th loom and $W_i, T_i$ are the wool type and wool tension, respectively.
 
+# TODO: Try to implement according to 
+https://arxiv.org/ftp/arxiv/papers/1907/1907.02569.pdf
 """
 
 # ╔═╡ 70c61890-a65f-49a8-be91-9bb9ddbcbf00
@@ -473,12 +475,15 @@ The are 17 employement statuses total. 14 statuses have little employee counts (
 """
 
 # ╔═╡ a770c7e9-8b4c-4674-b303-b1f01b4bd287
-status_df = combine(groupby(norfolk_df, [:"Employee Status"]), norfolk_df -> 
+begin
+	status_df = combine(groupby(norfolk_df, [:"Employee Status"]), norfolk_df -> 
         DataFrame(
             mean_monthly_salary_status = mean(norfolk_df[!,:ysalary]),
             count_employees_status = nrow(norfolk_df),
             std_monthly_salary_status = std(norfolk_df[!,:ysalary])
         ))
+	insertcols!(status_df, 2,  :status_code =>1:nrow(status_df))
+end
 
 # ╔═╡ 9c9fbfd9-e653-49a1-b45b-14620119b551
 histogram(status_df.std_monthly_salary_status, bins=20,xlabel="Salary Standard Deviation", ylabel="Status Count", label="status_df", title="All Employee Statuses")
@@ -513,6 +518,9 @@ $obs[i] ∼ LogNormal(μ[D_i],σ[D_i]) \space \forall i$
 
 """
 
+# ╔═╡ 457f0745-33a8-4973-aefe-effab9e45530
+
+
 # ╔═╡ 05aa5f83-eb21-4925-bb38-537f0664873b
 @model function norfolk_pooled(salary, department)
 	μ0 = 53000
@@ -540,13 +548,13 @@ md"""
 """
 
 # ╔═╡ fc600ded-c237-482e-b7d3-a0081836c4bc
-chn2_pooled = sample(norfolk_pooled(ex_norfolk_df.ysalary, ex_norfolk_df.department_code), NUTS(), 1000)
+# chn2_pooled = sample(norfolk_pooled(ex_norfolk_df.ysalary, ex_norfolk_df.department_code), NUTS(), 1000)
 
 # ╔═╡ 549f155c-3172-47e6-b539-fe5e20cbf6ef
-describe(chn2_pooled)
+# describe(chn2_pooled)
 
 # ╔═╡ 42745078-68c6-4f18-8400-694dbec0c1e0
-plot(chn2_pooled)
+# plot(chn2_pooled)
 
 # ╔═╡ 11352b72-d9cc-4b06-9c0c-9f05ee5e657c
 md"""
@@ -568,23 +576,71 @@ $obs[i] ∼ Normal(μ[D_i],σ[D_i]) \space \forall i$
 
 
 # ╔═╡ 9e83a188-f71d-4c99-861b-cd7430fdf22f
-@model function norfolk_seperate(salary, department, status)
-	μ0 = 53000
-	σ0 = 22800
+# @model function norfolk_seperate(salary, department, status)
+# # 	μ0 = 53000
+# # 	σ0 = 22800
 
-	# μs ~ MvLogNormal(MvNormal(fill(μ0, length(unique(department))), σ0))
-	μs ~ MvNormal(fill(μ0, length(unique(department))), σ0)
-	σs ~ product_distribution(fill(Exponential(1), length(unique(department))))
+# # 	# μs ~ MvLogNormal(MvNormal(fill(μ0, length(unique(department))), σ0))
+# # 	μs ~ MvNormal(fill(μ0, length(unique(department))), σ0)
+# # 	σs ~ product_distribution(fill(Exponential(1), length(unique(department))))
 	
-	for i in eachindex(salary)
-		salary[i] ~ LogNormal(μs[department[i]], σs[department[i]])
-	end
+# # 	for i in eachindex(salary)
+# # 		salary[i] ~ LogNormal(μs[department[i]], σs[department[i]])
+# # 	end
 	
 	
-end
+# end
+
+# ╔═╡ 4dd2c4f1-73cf-4bca-98f2-61905028d4b2
+md"""
+## Model 3: Hierarchical
+We account for department $D$ and employee status $E$ with shared parameters.
+The problem is that the data is clustered around a few departments and statuses. Thus, many of the combinations of department-status have few or no employees to observe! This leads to us unable to infer a proper mean and standard deviation.
+
+We propose to leverage the knowledge about mean and width from the groups with many samples to infer something about the empty groups.
+
+"""
+
 
 # ╔═╡ 1679a7c3-a0d8-44c1-a24a-bc080a3992b0
-@model function norfolk_hier(
+@model function norfolk_hier(salary, department, status)
+	μ ~ Exponential(1)
+	σ ~ Exponential(1)
+	μd ~ product_distribution(fill(Exponential(1), length(unique(department))))
+	μs ~ product_distribution(fill(Exponential(1), length(unique(status))))
+	σd ~ product_distribution(fill(Exponential(1), length(unique(department))))
+	σs ~ product_distribution(fill(Exponential(1), length(unique(status))))
+	for i in eachindex(salary)
+		salary[i] ~ Normal(μ + μd[department[i]] + μs[status[i]], sqrt(σ^2 + σd[department[i]]^2 + σs[status[i]]^2))
+	end
+end
+
+# ╔═╡ fa9d3d59-e737-426f-8c74-c2664f344d2e
+chn2_hier_prior = sample(norfolk_hier(ex_norfolk_df.ysalary, ex_norfolk_df.department_code, ex_norfolk_df.status_code), Prior(), 10000)
+
+# ╔═╡ cfbaf211-4100-4fd4-9fc8-8b1bb8561449
+describe(chn2_hier_prior)
+
+# ╔═╡ 6d8cbca1-d0f1-43ab-a8bc-bdd1aa2e0840
+plot(chn2_hier_prior)
+
+# ╔═╡ e90c5dd9-26ce-4db2-b861-cbb8d401087c
+chn2_hier = sample(norfolk_hier(ex_norfolk_df.ysalary, ex_norfolk_df.department_code, ex_norfolk_df.status_code), HMC(0.1, 5), 10000)
+
+# ╔═╡ 42174a08-2574-46fd-bbda-31a225400c02
+describe(chn2_hier)
+
+# ╔═╡ 6d9f4a51-8fb6-433e-a32d-6f775e8bc63e
+plot(chn2_hier)
+
+# ╔═╡ 50a0d780-e251-41ef-9102-ce2cb1546aa3
+chn22_hier = sample(norfolk_hier(ex_norfolk_df.ysalary, ex_norfolk_df.department_code, ex_norfolk_df.status_code), NUTS(), 10000)
+
+# ╔═╡ 2d139d4a-55f8-444c-87d0-c7deff2a507f
+describe(chn22_hier)
+
+# ╔═╡ 2e4d0747-61aa-4146-8c3b-2c9c56882dc5
+plot(chn22_hier)
 
 # ╔═╡ bc121ee0-30df-4542-b25f-7c6f51b8d6d2
 md"""
@@ -680,6 +736,7 @@ md"""
 # ╟─95a6fbae-4aed-4660-9430-451d85dfbb5a
 # ╠═3ad2303c-f85a-41b4-ada3-dab8615fe558
 # ╟─7bc43c2b-4a41-4f3b-b193-875c7f558ce5
+# ╠═457f0745-33a8-4973-aefe-effab9e45530
 # ╠═05aa5f83-eb21-4925-bb38-537f0664873b
 # ╟─f995c150-0ab5-4cd5-926b-5412fcd688ee
 # ╠═57603099-e396-41be-9ce8-575a9f3dacce
@@ -689,5 +746,15 @@ md"""
 # ╠═42745078-68c6-4f18-8400-694dbec0c1e0
 # ╠═11352b72-d9cc-4b06-9c0c-9f05ee5e657c
 # ╠═9e83a188-f71d-4c99-861b-cd7430fdf22f
+# ╠═4dd2c4f1-73cf-4bca-98f2-61905028d4b2
 # ╠═1679a7c3-a0d8-44c1-a24a-bc080a3992b0
+# ╠═fa9d3d59-e737-426f-8c74-c2664f344d2e
+# ╠═cfbaf211-4100-4fd4-9fc8-8b1bb8561449
+# ╠═6d8cbca1-d0f1-43ab-a8bc-bdd1aa2e0840
+# ╠═e90c5dd9-26ce-4db2-b861-cbb8d401087c
+# ╠═42174a08-2574-46fd-bbda-31a225400c02
+# ╠═6d9f4a51-8fb6-433e-a32d-6f775e8bc63e
+# ╠═50a0d780-e251-41ef-9102-ce2cb1546aa3
+# ╠═2d139d4a-55f8-444c-87d0-c7deff2a507f
+# ╠═2e4d0747-61aa-4146-8c3b-2c9c56882dc5
 # ╠═bc121ee0-30df-4542-b25f-7c6f51b8d6d2
