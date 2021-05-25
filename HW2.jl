@@ -628,7 +628,7 @@ chn2_hier_prior = sample(norfolk_hier(ex_norfolk_df.ysalary, ex_norfolk_df.depar
 describe(chn2_hier_prior)
 
 # ╔═╡ 6d8cbca1-d0f1-43ab-a8bc-bdd1aa2e0840
-plot(chn2_hier_prior)
+plot(chn2_hier_prior[1:10])
 
 # ╔═╡ e90c5dd9-26ce-4db2-b861-cbb8d401087c
 chn2_hier = sample(norfolk_hier(ex_norfolk_df.ysalary, ex_norfolk_df.department_code, ex_norfolk_df.status_code), HMC(0.1, 5), 10000)
@@ -638,6 +638,15 @@ describe(chn2_hier)
 
 # ╔═╡ 6d9f4a51-8fb6-433e-a32d-6f775e8bc63e
 plot(chn2_hier[1:10])
+
+# ╔═╡ af765f48-8ba5-4ed1-9dd7-fa846c3b881a
+md"""
+### Compare Separate and Hierarchical Models  
+
+"""
+
+# ╔═╡ ca4b9dd9-1a4d-4fd6-be58-b9f890aa33ae
+
 
 # ╔═╡ bc121ee0-30df-4542-b25f-7c6f51b8d6d2
 md"""
@@ -751,4 +760,6 @@ md"""
 # ╠═e90c5dd9-26ce-4db2-b861-cbb8d401087c
 # ╠═42174a08-2574-46fd-bbda-31a225400c02
 # ╠═6d9f4a51-8fb6-433e-a32d-6f775e8bc63e
+# ╠═af765f48-8ba5-4ed1-9dd7-fa846c3b881a
+# ╠═ca4b9dd9-1a4d-4fd6-be58-b9f890aa33ae
 # ╠═bc121ee0-30df-4542-b25f-7c6f51b8d6d2
