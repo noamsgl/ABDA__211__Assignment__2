@@ -569,11 +569,11 @@ $σ_0 = 22800$
 
 $μd[i] ~ LogNormal(μ_0, σ_0) \space \forall i \in [1,...,165]$
 
-$σd[i] ~ LogNormal(μ_0, σ_0) \space \forall i \in [1,...,165]$
+$σd[i] ~ Exponential(1) \space \forall i \in [1,...,165]$
 
 $μs[i] ~ LogNormal(μ_0, σ_0) \space \forall i \in [1,...,17]$
 
-$σs[i] ~ LogNormal(μ_0, σ_0) \space \forall i \in [1,...,17]$
+$σs[i] ~ Exponential(1) \space \forall i \in [1,...,17]$
 
 $obs[i] ∼ Normal(μd[D_i] + μs[S_i],σd[D_i] + σs[S_i]) \space \forall i$
 
@@ -582,20 +582,46 @@ $obs[i] ∼ Normal(μd[D_i] + μs[S_i],σd[D_i] + σs[S_i]) \space \forall i$
 
 
 # ╔═╡ 9e83a188-f71d-4c99-861b-cd7430fdf22f
-# @model function norfolk_seperate(salary, department, status)
-# # 	μ0 = 53000
-# # 	σ0 = 22800
+@model function norfolk_seperate(salary, department, status)
+	μ0 = 53000
+	σ0 = 22800
 
-# # 	# μs ~ MvLogNormal(MvNormal(fill(μ0, length(unique(department))), σ0))
-# # 	μs ~ MvNormal(fill(μ0, length(unique(department))), σ0)
-# # 	σs ~ product_distribution(fill(Exponential(1), length(unique(department))))
+	μd ~ MvNormal(fill(μ0, length(unique(department))), σ0)
+	σd ~ product_distribution(fill(Exponential(1), length(unique(department))))
 	
-# # 	for i in eachindex(salary)
-# # 		salary[i] ~ LogNormal(μs[department[i]], σs[department[i]])
-# # 	end
+	μs ~ MvNormal(fill(μ0, length(unique(status))), σ0)
+	σs ~ product_distribution(fill(Exponential(1), length(unique(status))))
 	
 	
-# end
+	for i in eachindex(salary)
+		salary[i] ~ LogNormal(μs[department[i]] + μs[status[i]], σd[department[i]] + σs[status[i]])
+	end
+end
+
+# ╔═╡ 1965172f-cd62-4b57-b189-117ae9ab9d1a
+md"""
+#### Sampling the Prior
+"""
+
+# ╔═╡ f41dc534-2d48-4465-894d-b54864f6e92c
+chn2_sep_prior = sample(norfolk_seperate(ex_norfolk_df.ysalary, ex_norfolk_df.department_code, ex_norfolk_df.status_code), Prior(), 10000)
+
+# ╔═╡ c9a402f0-f176-4aac-889e-7e7b7e089ad1
+describe(chn2_sep_prior)
+
+# ╔═╡ cd3764ad-450e-4126-a40d-e0dd9ca7c965
+plot(chn2_sep_prior[1:10])
+
+# ╔═╡ 7b04824e-9859-46df-a6de-9d1c9192ac4c
+md"""
+#### Sampling the Posterior
+"""
+
+# ╔═╡ 715e181e-bbce-41de-9d80-c84a74c9b78f
+chn2_sep = sample(norfolk_seperate(ex_norfolk_df.ysalary, ex_norfolk_df.department_code, ex_norfolk_df.status_code), HMC(0.1, 5), 10000)
+
+# ╔═╡ 05b19afb-ca74-4580-9c8b-843c08c13897
+plot(chn2_sep[1:10])
 
 # ╔═╡ 4dd2c4f1-73cf-4bca-98f2-61905028d4b2
 md"""
@@ -752,6 +778,13 @@ md"""
 # ╠═42745078-68c6-4f18-8400-694dbec0c1e0
 # ╠═11352b72-d9cc-4b06-9c0c-9f05ee5e657c
 # ╠═9e83a188-f71d-4c99-861b-cd7430fdf22f
+# ╠═1965172f-cd62-4b57-b189-117ae9ab9d1a
+# ╠═f41dc534-2d48-4465-894d-b54864f6e92c
+# ╠═c9a402f0-f176-4aac-889e-7e7b7e089ad1
+# ╠═cd3764ad-450e-4126-a40d-e0dd9ca7c965
+# ╠═7b04824e-9859-46df-a6de-9d1c9192ac4c
+# ╠═715e181e-bbce-41de-9d80-c84a74c9b78f
+# ╠═05b19afb-ca74-4580-9c8b-843c08c13897
 # ╟─4dd2c4f1-73cf-4bca-98f2-61905028d4b2
 # ╠═1679a7c3-a0d8-44c1-a24a-bc080a3992b0
 # ╠═fa9d3d59-e737-426f-8c74-c2664f344d2e
