@@ -193,8 +193,8 @@ $obs[i] ∼ Poisson(λ[W_i, T_i]) \space \forall i$
 
 Where $obs[i]$ is the number of breaks in the $i$'th loom and $W_i, T_i$ are the wool type and wool tension, respectively.
 
-# TODO: Try to implement according to 
-https://arxiv.org/ftp/arxiv/papers/1907/1907.02569.pdf
+#### TODO (Future Noam): Implement according to 
+https://arxiv.org/ftp/arxiv/papers/1907/1907.02569.pdf and compare.
 """
 
 # ╔═╡ 70c61890-a65f-49a8-be91-9bb9ddbcbf00
@@ -555,9 +555,6 @@ chn2_pooled = sample(norfolk_pooled(ex_norfolk_df.ysalary, ex_norfolk_df.departm
 # ╔═╡ 549f155c-3172-47e6-b539-fe5e20cbf6ef
 describe(chn2_pooled)
 
-# ╔═╡ 42745078-68c6-4f18-8400-694dbec0c1e0
-# plot(chn2_pooled)
-
 # ╔═╡ 11352b72-d9cc-4b06-9c0c-9f05ee5e657c
 md"""
 ## Model 2: Fully Seperate
@@ -647,17 +644,11 @@ chn2_hier_prior = sample(norfolk_hier(ex_norfolk_df.ysalary, ex_norfolk_df.depar
 # ╔═╡ cfbaf211-4100-4fd4-9fc8-8b1bb8561449
 describe(chn2_hier_prior)
 
-# ╔═╡ 6d8cbca1-d0f1-43ab-a8bc-bdd1aa2e0840
-plot(chn2_hier_prior[1:10])
-
 # ╔═╡ e90c5dd9-26ce-4db2-b861-cbb8d401087c
 chn2_hier = sample(norfolk_hier(ex_norfolk_df.ysalary, ex_norfolk_df.department_code, ex_norfolk_df.status_code), HMC(0.1, 5), 10000)
 
 # ╔═╡ 42174a08-2574-46fd-bbda-31a225400c02
 describe(chn2_hier)
-
-# ╔═╡ 6d9f4a51-8fb6-433e-a32d-6f775e8bc63e
-plot(chn2_hier[1:10])
 
 # ╔═╡ af765f48-8ba5-4ed1-9dd7-fa846c3b881a
 md"""
@@ -666,7 +657,10 @@ md"""
 """
 
 # ╔═╡ ca4b9dd9-1a4d-4fd6-be58-b9f890aa33ae
+describe(chn2_sep)
 
+# ╔═╡ 351e83de-ef7f-422e-940b-349e0987a7fd
+describe(chn2_hier)
 
 # ╔═╡ bc121ee0-30df-4542-b25f-7c6f51b8d6d2
 md"""
@@ -703,7 +697,7 @@ md"""
 # ╠═4d6cf4f7-961a-4fb9-8ea6-5babe84cafa7
 # ╠═58675fd9-d1fb-4d09-9879-12b495fa154a
 # ╠═d334e9d1-f55c-44ea-b3bc-5b7afb7df84c
-# ╠═520a5338-d39d-4a41-a133-f9257a6b312e
+# ╟─520a5338-d39d-4a41-a133-f9257a6b312e
 # ╠═7b61939d-4fdd-4cf3-9396-bc669d79c69d
 # ╠═5da2340b-0ef1-4454-83ba-8557fada0b98
 # ╠═58123c1a-8ae1-4858-b847-b842a07fd2f8
@@ -713,7 +707,7 @@ md"""
 # ╟─c5963b29-f843-4e38-ab21-51b3d891a197
 # ╠═88f73f6d-0709-46fb-b7a6-a9898a2f044c
 # ╟─b2f5b368-2940-442d-936f-58aec32c889e
-# ╠═9fd59715-6aaf-4786-b417-39f795811e52
+# ╟─9fd59715-6aaf-4786-b417-39f795811e52
 # ╠═70c61890-a65f-49a8-be91-9bb9ddbcbf00
 # ╟─6c582d07-1dcd-4896-bc92-cd419c8ef78c
 # ╠═fa906b36-9d5a-45f9-ba21-93276e663e62
@@ -766,25 +760,23 @@ md"""
 # ╠═05aa5f83-eb21-4925-bb38-537f0664873b
 # ╟─f995c150-0ab5-4cd5-926b-5412fcd688ee
 # ╠═57603099-e396-41be-9ce8-575a9f3dacce
-# ╠═bab3fbb3-ee1b-4fe1-8008-dc0ceacf74fd
+# ╟─bab3fbb3-ee1b-4fe1-8008-dc0ceacf74fd
 # ╠═fc600ded-c237-482e-b7d3-a0081836c4bc
 # ╠═549f155c-3172-47e6-b539-fe5e20cbf6ef
-# ╠═42745078-68c6-4f18-8400-694dbec0c1e0
-# ╠═11352b72-d9cc-4b06-9c0c-9f05ee5e657c
+# ╟─11352b72-d9cc-4b06-9c0c-9f05ee5e657c
 # ╠═9e83a188-f71d-4c99-861b-cd7430fdf22f
-# ╠═1965172f-cd62-4b57-b189-117ae9ab9d1a
+# ╟─1965172f-cd62-4b57-b189-117ae9ab9d1a
 # ╠═f41dc534-2d48-4465-894d-b54864f6e92c
 # ╠═c9a402f0-f176-4aac-889e-7e7b7e089ad1
-# ╠═7b04824e-9859-46df-a6de-9d1c9192ac4c
+# ╟─7b04824e-9859-46df-a6de-9d1c9192ac4c
 # ╠═715e181e-bbce-41de-9d80-c84a74c9b78f
 # ╟─4dd2c4f1-73cf-4bca-98f2-61905028d4b2
 # ╠═1679a7c3-a0d8-44c1-a24a-bc080a3992b0
 # ╠═fa9d3d59-e737-426f-8c74-c2664f344d2e
 # ╠═cfbaf211-4100-4fd4-9fc8-8b1bb8561449
-# ╠═6d8cbca1-d0f1-43ab-a8bc-bdd1aa2e0840
 # ╠═e90c5dd9-26ce-4db2-b861-cbb8d401087c
 # ╠═42174a08-2574-46fd-bbda-31a225400c02
-# ╠═6d9f4a51-8fb6-433e-a32d-6f775e8bc63e
 # ╠═af765f48-8ba5-4ed1-9dd7-fa846c3b881a
 # ╠═ca4b9dd9-1a4d-4fd6-be58-b9f890aa33ae
-# ╠═bc121ee0-30df-4542-b25f-7c6f51b8d6d2
+# ╠═351e83de-ef7f-422e-940b-349e0987a7fd
+# ╟─bc121ee0-30df-4542-b25f-7c6f51b8d6d2
