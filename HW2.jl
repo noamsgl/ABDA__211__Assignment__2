@@ -353,6 +353,11 @@ describe(chn1_hier)
 # ╔═╡ d4854857-3c15-47c2-aa26-8169889cb101
 plot(chn1_hier)
 
+# ╔═╡ 970507d5-4e63-4c79-b56b-e902255bb4b4
+md"""
+Look at Δ. It represents the factor by which switching wool from $A$ to $B$ affects mean warp breaks. Conditioned on the data and model Δ is likely between 0.7 and 0.9, which agrees with the observation we saw in the data.
+"""
+
 # ╔═╡ 78586ab6-e1c1-4731-aa2b-6bd73c1d6d64
 md"""
 ## Problem 2: Norfolk City Salaries
@@ -518,9 +523,6 @@ $obs[i] ∼ LogNormal(μ[D_i],σ[D_i]) \space \forall i$
 
 """
 
-# ╔═╡ 457f0745-33a8-4973-aefe-effab9e45530
-
-
 # ╔═╡ 05aa5f83-eb21-4925-bb38-537f0664873b
 @model function norfolk_pooled(salary, department)
 	μ0 = 53000
@@ -548,7 +550,7 @@ md"""
 """
 
 # ╔═╡ fc600ded-c237-482e-b7d3-a0081836c4bc
-# chn2_pooled = sample(norfolk_pooled(ex_norfolk_df.ysalary, ex_norfolk_df.department_code), NUTS(), 1000)
+# chn2_pooled = sample(norfolk_pooled(ex_norfolk_df.ysalary, ex_norfolk_df.department_code), HMC(0.1, 5), 10000)
 
 # ╔═╡ 549f155c-3172-47e6-b539-fe5e20cbf6ef
 # describe(chn2_pooled)
@@ -565,11 +567,15 @@ $μ_0 = 53000$
 
 $σ_0 = 22800$
 
-$μ[i] ~ LogNormal(μ_0, σ_0) \space \forall i \in [1,...,165]$
+$μd[i] ~ LogNormal(μ_0, σ_0) \space \forall i \in [1,...,165]$
 
-$σ[i] ~ LogNormal(μ_0, σ_0) \space \forall i \in [1,...,165]$
+$σd[i] ~ LogNormal(μ_0, σ_0) \space \forall i \in [1,...,165]$
 
-$obs[i] ∼ Normal(μ[D_i],σ[D_i]) \space \forall i$
+$μs[i] ~ LogNormal(μ_0, σ_0) \space \forall i \in [1,...,17]$
+
+$σs[i] ~ LogNormal(μ_0, σ_0) \space \forall i \in [1,...,17]$
+
+$obs[i] ∼ Normal(μd[D_i] + μs[S_i],σd[D_i] + σs[S_i]) \space \forall i$
 
 """
 
@@ -631,16 +637,7 @@ chn2_hier = sample(norfolk_hier(ex_norfolk_df.ysalary, ex_norfolk_df.department_
 describe(chn2_hier)
 
 # ╔═╡ 6d9f4a51-8fb6-433e-a32d-6f775e8bc63e
-plot(chn2_hier[1:1000])
-
-# ╔═╡ 50a0d780-e251-41ef-9102-ce2cb1546aa3
-chn22_hier = sample(norfolk_hier(ex_norfolk_df.ysalary, ex_norfolk_df.department_code, ex_norfolk_df.status_code), NUTS(), 10000)
-
-# ╔═╡ 2d139d4a-55f8-444c-87d0-c7deff2a507f
-describe(chn22_hier)
-
-# ╔═╡ 2e4d0747-61aa-4146-8c3b-2c9c56882dc5
-plot(chn22_hier)
+plot(chn2_hier[1:10])
 
 # ╔═╡ bc121ee0-30df-4542-b25f-7c6f51b8d6d2
 md"""
@@ -709,6 +706,7 @@ md"""
 # ╠═ed2ed1b9-8b18-41d2-b998-3d73d4073018
 # ╠═a939664d-e678-4f96-839c-957a356f55c7
 # ╠═d4854857-3c15-47c2-aa26-8169889cb101
+# ╟─970507d5-4e63-4c79-b56b-e902255bb4b4
 # ╟─78586ab6-e1c1-4731-aa2b-6bd73c1d6d64
 # ╠═6e9e9d2a-db6f-4732-b8fb-293737f7a87d
 # ╟─197973a1-2cde-4be5-b4dc-608ec55f57f4
@@ -736,7 +734,6 @@ md"""
 # ╟─95a6fbae-4aed-4660-9430-451d85dfbb5a
 # ╠═3ad2303c-f85a-41b4-ada3-dab8615fe558
 # ╟─7bc43c2b-4a41-4f3b-b193-875c7f558ce5
-# ╠═457f0745-33a8-4973-aefe-effab9e45530
 # ╠═05aa5f83-eb21-4925-bb38-537f0664873b
 # ╟─f995c150-0ab5-4cd5-926b-5412fcd688ee
 # ╠═57603099-e396-41be-9ce8-575a9f3dacce
@@ -746,7 +743,7 @@ md"""
 # ╠═42745078-68c6-4f18-8400-694dbec0c1e0
 # ╠═11352b72-d9cc-4b06-9c0c-9f05ee5e657c
 # ╠═9e83a188-f71d-4c99-861b-cd7430fdf22f
-# ╠═4dd2c4f1-73cf-4bca-98f2-61905028d4b2
+# ╟─4dd2c4f1-73cf-4bca-98f2-61905028d4b2
 # ╠═1679a7c3-a0d8-44c1-a24a-bc080a3992b0
 # ╠═fa9d3d59-e737-426f-8c74-c2664f344d2e
 # ╠═cfbaf211-4100-4fd4-9fc8-8b1bb8561449
@@ -754,7 +751,4 @@ md"""
 # ╠═e90c5dd9-26ce-4db2-b861-cbb8d401087c
 # ╠═42174a08-2574-46fd-bbda-31a225400c02
 # ╠═6d9f4a51-8fb6-433e-a32d-6f775e8bc63e
-# ╠═50a0d780-e251-41ef-9102-ce2cb1546aa3
-# ╠═2d139d4a-55f8-444c-87d0-c7deff2a507f
-# ╠═2e4d0747-61aa-4146-8c3b-2c9c56882dc5
 # ╠═bc121ee0-30df-4542-b25f-7c6f51b8d6d2
