@@ -631,7 +631,7 @@ chn2_hier = sample(norfolk_hier(ex_norfolk_df.ysalary, ex_norfolk_df.department_
 describe(chn2_hier)
 
 # ╔═╡ 6d9f4a51-8fb6-433e-a32d-6f775e8bc63e
-plot(chn2_hier)
+plot(chn2_hier[1:1000])
 
 # ╔═╡ 50a0d780-e251-41ef-9102-ce2cb1546aa3
 chn22_hier = sample(norfolk_hier(ex_norfolk_df.ysalary, ex_norfolk_df.department_code, ex_norfolk_df.status_code), NUTS(), 10000)
