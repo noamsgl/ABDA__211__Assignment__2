@@ -193,8 +193,7 @@ $obs[i] ∼ Poisson(λ[W_i, T_i]) \space \forall i$
 
 Where $obs[i]$ is the number of breaks in the $i$'th loom and $W_i, T_i$ are the wool type and wool tension, respectively.
 
-#### TODO (Future Noam): Implement according to 
-https://arxiv.org/ftp/arxiv/papers/1907/1907.02569.pdf and compare.
+#### TODO (Future Noam): Implement [^4] and compare.
 """
 
 # ╔═╡ 70c61890-a65f-49a8-be91-9bb9ddbcbf00
@@ -614,6 +613,9 @@ md"""
 # ╔═╡ 715e181e-bbce-41de-9d80-c84a74c9b78f
 chn2_sep = sample(norfolk_seperate(ex_norfolk_df.ysalary, ex_norfolk_df.department_code, ex_norfolk_df.status_code), HMC(0.1, 5), 10000)
 
+# ╔═╡ 9fb2542c-06e7-46f1-b5d4-4ead271ba8f9
+describe(chn2_sep)
+
 # ╔═╡ 4dd2c4f1-73cf-4bca-98f2-61905028d4b2
 md"""
 ## Model 3: Hierarchical
@@ -654,6 +656,11 @@ describe(chn2_hier)
 md"""
 ### Compare Separate and Hierarchical Models  
 
+In the seperate model, we are stumped with the problem of groups with small samples. A small number of groups have the majority of employees, and all the rest remain small, too small to approximate the variance to a helpful degree. The disregart to the cross-classified structures in the data leads to overstating the relative importance of the larger groups, which can lead to misleading conclusions about the relative importance of the department-status properties via the posterior belief [^4]. 
+
+
+In the hierarchical model, we solve this problem by utilizing the prior knowledge of [homophily](https://en.wikipedia.org/wiki/Network_homophily): employees in same groups have similar properties. Through the choice of a hyperprior which mixes the priors for department and status, we allow sharing of information between outcomes.
+
 """
 
 # ╔═╡ ca4b9dd9-1a4d-4fd6-be58-b9f890aa33ae
@@ -661,6 +668,23 @@ describe(chn2_sep)
 
 # ╔═╡ 351e83de-ef7f-422e-940b-349e0987a7fd
 describe(chn2_hier)
+
+# ╔═╡ f78d6966-3082-47d2-b1e3-69fce668686f
+begin
+	small_dept_code = 5  # department code of a small department "Police Administration - Civilian, N=6"
+	small_status_code = 6  # status code of a small employee status group "Appointed by City Council", N=6"
+	mean(chn2_sep[:"σs[6]"]), "is less than", mean(chn2_hier[:"σs[6]"])
+	# printchn2_sep[:"σd[5]"], "is more than", chn2_hier[:"σd[5]"]
+
+end
+
+# ╔═╡ ecd1243a-2701-4d07-81db-ac58dfe1a9b2
+begin
+
+	# mean(chn2_sep[:"σs[6]"]), mean(chn2_hier[:"σs[6]"])
+	mean(chn2_sep[:"σd[5]"]), "is less than", mean(chn2_hier[:"σd[5]"])
+
+end
 
 # ╔═╡ bc121ee0-30df-4542-b25f-7c6f51b8d6d2
 md"""
@@ -673,7 +697,12 @@ md"""
 [^2]: Workweek and weekend. (2021, May 23). In Wikipedia. [https://en.wikipedia.org/wiki/Workweek\_and\_weekend](https://en.wikipedia.org/wiki/Workweek_and_weekend)
 
 [^3]: [What Does It Mean To Be Exempt From FLSA? - Deputy](https://www.deputy.com/glossary/what-does-it-mean-to-be-exempt-from-flsa)
+
+[^4] [Leckie, George. "Cross-classified multilevel models." arXiv preprint arXiv:1907.02569 (2019).](https://arxiv.org/abs/1907.02569)
 """
+
+# ╔═╡ 670be838-d68e-45a2-b74c-f1906556ca19
+
 
 # ╔═╡ Cell order:
 # ╠═f4f05182-38b6-4bfc-bcbb-86ceb63cecbb
@@ -707,7 +736,7 @@ md"""
 # ╟─c5963b29-f843-4e38-ab21-51b3d891a197
 # ╠═88f73f6d-0709-46fb-b7a6-a9898a2f044c
 # ╟─b2f5b368-2940-442d-936f-58aec32c889e
-# ╟─9fd59715-6aaf-4786-b417-39f795811e52
+# ╠═9fd59715-6aaf-4786-b417-39f795811e52
 # ╠═70c61890-a65f-49a8-be91-9bb9ddbcbf00
 # ╟─6c582d07-1dcd-4896-bc92-cd419c8ef78c
 # ╠═fa906b36-9d5a-45f9-ba21-93276e663e62
@@ -770,6 +799,7 @@ md"""
 # ╠═c9a402f0-f176-4aac-889e-7e7b7e089ad1
 # ╟─7b04824e-9859-46df-a6de-9d1c9192ac4c
 # ╠═715e181e-bbce-41de-9d80-c84a74c9b78f
+# ╠═9fb2542c-06e7-46f1-b5d4-4ead271ba8f9
 # ╟─4dd2c4f1-73cf-4bca-98f2-61905028d4b2
 # ╠═1679a7c3-a0d8-44c1-a24a-bc080a3992b0
 # ╠═fa9d3d59-e737-426f-8c74-c2664f344d2e
@@ -779,4 +809,7 @@ md"""
 # ╠═af765f48-8ba5-4ed1-9dd7-fa846c3b881a
 # ╠═ca4b9dd9-1a4d-4fd6-be58-b9f890aa33ae
 # ╠═351e83de-ef7f-422e-940b-349e0987a7fd
-# ╟─bc121ee0-30df-4542-b25f-7c6f51b8d6d2
+# ╠═f78d6966-3082-47d2-b1e3-69fce668686f
+# ╠═ecd1243a-2701-4d07-81db-ac58dfe1a9b2
+# ╠═bc121ee0-30df-4542-b25f-7c6f51b8d6d2
+# ╠═670be838-d68e-45a2-b74c-f1906556ca19
